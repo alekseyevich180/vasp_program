@@ -1,0 +1,1661 @@
+壺車（つぼぐるま）　マニュアル　作：日沼洋陽（にっしょう　ひろあき）
+2681/02/21 327638bytes 
+
+★最新版は http://tsuboguruma.seesaa.net/ を参照！★
+
+本スクリプトはVASPのPOSCAR (CONTCAR)を処理するユーティリティーである。
+
+---- インストール ----
+
+tsubo.pl の１つのperlスクリプトで完結しているので、このファイルが実行可能であればよい。必要ならば、１行目のshebangを変えること。 当然だが、perl tsubo.pl のように実行することも可能である。
+
+
+---- 使い方 ----
+
+原則として、tsubo.pl --function <POSCAR のように使用する。「POSCAR」部分は実際に
+使用するPOSCARやCONTCARの名前を入れる。基本的に出力は標準出力に行われる。
+
+Selective dynamicsのPOSCARも対応可、この場合、出力ではSelective dynamicsの行が外される。T T T や F F F などは原子名の一部として保存されるので、必要ならばselective dynamicsの行を7と8行目の間にhead, echo, tailなどを利用して入れること。
+なお、例外として、--selective_trueと--selective_falseは、Selective dynamicsのファイルが生成される（全部Tか全部F）。必要ならば、selective dynamicsなしのPOSCARにこれらのオプション（省略形あり）を適用すること。
+
+VASP4のPOSCARは使用不可。
+
+POSCARの2行目が1.0以外の場合、強制的に1.0に変更される。
+
+
+---- 必要になるかもしれない改造 ----
+
+- Phonopyのtolerance (--tolerance)の調整については、５行目の
+my $phonopy_tolerance=1E-4;
+で調整可能。
+#がついているのはコメント行。
+1E-2よりゆるく（数字を大きく）する必要はあまりないと思います。
+
+- 2680/12/21以前でスラブモデル作成時、一部の環境で高面指数のモデルを作ろうとすると、できるはずのモデルが生成されない場合があり、コメントアウトが必要な行がありましたが、現行バージョン以降、コメントアウトがデフォルトとなりました。旧版との整合性を取る場合は、ここをコメントにしてください。
+
+############ 2680/11 yori mae dewa ############
+############ koko wo comment       ############
+	&d2c;
+	&maxortho;
+	&c2d;
+###############################################
+
+
+---- 対称操作 (isometryなど)の表記について ----
+結晶学では、対象操作の行列部分が
+(W11 W12 W13)
+(W21 W22 W23)
+(W31 W32 W33)
+ベクトル部分が
+(w1)
+(w2)
+(w3)
+と表記される（International Tables for Crystallography A, 6th edition, p721）
+ w11 w12 w13 w21 w22 w23 w31 w32 w33 w1 w2 w3 
+
+この場合、座標や基底ベクトル含む格子ベクトルも縦ベクトルで表記される。
+しかし、VASPでは座標と基底ベクトルが転置され、横ベクトルとして表記される。
+
+(p1)
+(p2)
+(p3)
+
+に対し、上述の対称操作を適用すると
+
+(q1)   (W11p1+W12p2+W13p3+w1)
+(q2) = (W21p1+W22p2+W23p3+w2)
+(q3)   (W31p1+W32p2+W33p3+w3)
+
+となる。
+
+転置した座標
+(p1,p2,p3)に対し上の対称操作を適用すると、
+
+(q1,q2,q3) = (p1,p2,p3)M+(w1,w2,w3)
+ここでMは
+(W11 W21 W31)
+(W12 W22 W32)
+(W13 W23 W33)
+となる。
+
+tsubo.plは対称要素は
+W12 W21 W31 W12 W22 W32 W13 W23 W33 w1 w2 w3
+の順に表記する。
+
+
+---- 引用すべき文献 ----
+
+・Phonopyを使用するコマンドでは、phonopy --symmetry で生成されるBPOSCARを使用するため、phonopy （http://phonopy.sourceforge.net/）をコマンドラインで使用できる必要がある。version 1.9.4-rc1で動作確認。1.11.6？あたりの標準出力変更にも対応済。比較的新しいバージョンのBPOSCARのフォーマット変更(VASP4→VASP5)も対応済。
+Phonopyを暗示的にでも使用する場合は http://spglib.sourceforge.net/ および
+Atsushi Togo and Isao Tanaka.First principles phonon calculations in materials science.  Scr. Mater., 108, 1-5 (2015)  を引用すること。
+http://dx.doi.org/10.1016/j.scriptamat.2015.07.021 
+
+Phonopy 2 については未入手のため検討できていない。
+Phonopyの引用についての情報はこちら。
+https://atztogo.github.io/phonopy/citation.html
+
+・Crystallographic primitiveセルおよび結晶学に基づいたバンドパス関連を使用する場合は、
+Yoyo Hinuma, GiovanniPizzi, Yu Kumagai, Fumiyasu Oba, Isao Tanaka. Band structure diagram paths based on crystallography. Computational Materials Science 128 (217) 140-184　https://www.sciencedirect.com/science/article/abs/pii/S0927025616305110 http://arxiv.org/abs/1602.06402 を引用すること。
+
+・特定表面のスラブを作成する機能（--hklcell_supercell、--termination_polarity、--slab_poscar等）およびNonpolar type A/B/Cの定義については、
+Yoyo Hinuma, Yu Kumagai, Fumiyasu Oba, Isao Tanaka. Categorization of surface polarity from a crystallographic approach, Computational Materials Science 113 (15) 221 (2016). 　https://www.sciencedirect.com/science/article/abs/pii/S0927025615007612　https://arxiv.org/abs/1508.07194
+を引用すること。
+
+・unique nonpolar表面を使用する場合(--unique_nonpolar等)、
+Yoyo Hinuma, Yu Kumagai, Isao Tanaka, Fumiyasu Oba. Effects of composition, crystal structure, and surface orientation on band alignment of divalentmetal oxides: A first-principles study, Physical Review Materials 2, 124603 (2018)　https://journals.aps.org/prmaterials/abstract/10.1103/PhysRevMaterials.2.124603　
+も引用すること。マイナーな間違いがあります。（大半のケースには影響ありません）これについては
+Yoyo Hinuma, Takashi Kamachi, Nobutsugu Hamamoto.  Automated Identification of Facet Pair Orientations. Materials Transactions 61 (8) 1430-1433 (2020) 参照　https://www.jstage.jst.go.jp/article/matertrans/61/8/61_MT-MN2019004/_article/-char/ja　（オープンアクセス）
+
+・Nonpolar type Cとstep edge model関係については、
+Yoyo Hinuma, Takashi Kamachi, Nobutsugu Hamamoto. Auto-Generation of Corrugated Nonpolar Stoichiometric Slab Models, Materials Transactions 61 (1) 78 (2020) 参照　https://www.jstage.jst.go.jp/article/matertrans/61/1/61_MT-M2019215/_article/-char/ja　（オープンアクセス）
+
+・ファセット再構成のペア面指数自動判定については
+Yoyo Hinuma, Takashi Kamachi, Nobutsugu Hamamoto.  Automated Identification of Facet Pair Orientations. Materials Transactions 61 (8) 1430-1433 (2020)　https://www.jstage.jst.go.jp/article/matertrans/61/8/61_MT-MN2019004/_article/-char/ja/ 参照。 
+
+・表面サイトの自動判定(--solid_angle)については
+Yoyo Hinuma, Takashi Kamachi, Nobutsugu Hamamoto.  Algorithm for Automatic Detection of Surface Atoms. Trans. Mat. Res. Soc. Japan  45 (4) 115-120 (2020) 参照　https://www.jstage.jst.go.jp/article/tmrsj/45/4/45_115/_article/-char/ja/　(オープンアクセス)
+
+・(非推奨)standard conventional/standard primitiveセルを使用する場合は、
+Yoyo Hinuma, Atsushi Togo, Hiroyuki Hayashi, Isao Tanaka. Choice of basis vectors for conventional unit cells revisited. http://arxiv.org/abs/1506.01455　
+および
+W. Setyawan, S. Curtarolo, High-throughput electronic band structure calculations: Challenges and tools, Computational Materials Science 49 (2) (2010) 299.
+を引用すること。
+
+
+
+
+---- コマンド解説 ----
+現在実装されている機能は、以下のとおりです。
+
+
+◎をつけた機能は使用頻度が高いと思われるコマンドです。
+☆をつけた機能は使用に注意が必要なコマンドです。主に表面やバンドパス関係のコマンドに付されていて、何らかのHinuma et al.の論文に含まれる定義を参照する、特殊な用途のファイルを出力する、結晶学の知識が必要となる、等、一般的ではない前提知識が求められます。
+▲をつけた機能は使用頻度、重要度が低いと思われるコマンドです。
+
+
+A) POSCARを読まない機能
+A1) ヘルプ系
+
+◎
+tsubo.pl -h
+tsubo.pl -help
+tsubo.pl --help
+ヘルプを表示する。
+
+tsubo.pl --version
+バージョン情報を表示する。
+
+
+A2) その他
+
+tsubo.pl --clat a b c alpha beta gamma
+引数で与えられた格子定数（a b c alpha beta gamma）をもとに、lattice vector（３行）を生成する。
+
+☆
+*2021/2/21 転置に関するマニュアル誤植を修正*
+tsubo.pl --symop_info a b c d e f g h i j k l
+tsubo.pl --symmetry_operation_info a b c d e f g h i j k l
+対称操作の行列部分とベクトル部分が
+[a d g] [j]
+[b e h] [k]
+[c f i] [l]
+についての情報を求める。
+International Tables of Crystallography Aのロジックに基づいて対称操作の種類(1,2,3,4,6,-1,m,-3,-4,-6)（最初の値）、glide/screw vectorまたは(roto)inversion center　（次の3個の値）、screw/glide/rotoinversion axisまたはmirror planeの情報（最後の12個の値）を与える。格子ベクトルの情報が取り込まれていないため、最初の値ではrotationとscrew、mirrorとglideの完全な識別は*できない*。mirrorやrotationでもglide/screw vectorが(0,0,0)にならないこともありうることに注意。
+
+出力例は
+2 [ 0 0.25 0 ] ( -2 0 0 0 0 0 0 0 -2 ) ( 0.5 0 0.5 )
+のようになる。
+後ろ12個の値A-Lを用いた連立方程式
+
+[A D G]   [x]   [J]   [0]
+[B E H] * [y] + [K] = [0]
+[C F I]   [z]   [L]   [0]
+
+のx,y,zの解がaxisまたはplaneの式である。この連立方程式は必ず不定になるため(axis=不定値1 plane=不定値2)、逆行列をかける方法では解くことができない。また、スーパーセルを用いた場合や、「普通でない」値のベクトル部分を与えた場合、方程式が解無しとなる場合がある。この場合、ベクトル部分(J,K,L)から適宜、格子ベクトルを足し引きすると解決できることがある。
+
+引数で与えられた格子定数（a b c alpha beta gamma）をもとに、lattice vector（３行）を生成する。
+
+
+
+B) POSCAR情報関連
+
+◎
+tsubo.pl --data <POSCAR
+tsubo.pl --data_full <POSCAR
+POSCARの情報（格子定数、逆格子ベクトル、逆格子格子定数等）を表示する。
+--data_fullはすべての値を小数点以下10桁表示するので、桁落ちしにくい。--dataの桁数はaconvasp準拠。
+逆格子ベクトルの定義は、例えばb1=2π(a2xa3)/(a1*(a2xa3)である。
+以下の値もあわせて表示する
+c/a :　単純に格子定数cをaで割ったもの。
+|axb| : 基底ベクトルaとbの外積の絶対値で、abベクトルのなす平方四辺形の面積である。
+vol/|axb|：体積を上述面積で割ったもので、セルの「高さ/厚さ」に相当する。格子定数αとβが両方90度のときだけc/aと一致するが、基本的に違う値なので注意。層状構造の厚さではこちらを使用する。
+
+
+tsubo.pl --dataniggli <POSCAR
+tsubo.pl --data_niggli <POSCAR
+POSCARをniggli reduced cellにした上で（後述 --niggli 参照）情報（格子定数、逆格子ベクトル、逆格子格子定数等）を表示する。
+|axb|はセルのab面内の面積、vol/|axb|はセルの体積をセルのab面内の面積で割ったものであり、セルの高さである。
+
+
+tsubo.pl --numatoms <POSCAR
+tsubo.pl --num_atoms <POSCAR
+tsubo.pl --natoms <POSCAR
+tsubo.pl --numatom <POSCAR
+tsubo.pl --num_atom <POSCAR
+tsubo.pl --natom <POSCAR
+POSCARに含まれる原子数を表示する。
+
+
+tsubo.pl --numspecies <POSCAR
+tsubo.pl --num_species <POSCAR
+tsubo.pl --nspecies <POSCAR
+POSCARに含まれる元素数 (必要なPOTCAR数) を表示する。
+
+
+tsubo.pl --stoichiometry <POSCAR
+POSCARの組成比を表示する。7行目を最大公約数で割る。
+
+
+tsubo.pl --which_atom_number x y z <POSCAR
+(x,y,z)の原子の通し番号(1スタート)を表示する。D/CはPOSCARと同じにする。
+例えば元素Aの原子が2つ、元素Bの原子が3つの場合、通し番号は1-5のどれかとなる。
+
+
+◎
+tsubo.pl --dist D <POSCAR
+tsubo.pl --distance D <POSCAR
+tsubo.pl --dist_large D <POSCAR
+tsubo.pl --distance_large D <POSCAR
+各原子について、距離D以下の原子の距離と場所を表示する。デフォルトは4。
+--distでは、元のユニットセルに対し、(±1,±1,±1)のスーパーセルを探索対象とする。（要するに元のスーパーセルが中心の3x3x3のスーパーセル）。長い原子間距離Dを考える場合、より広い範囲を探索する必要がある。 dist_largeでは(±3,±3,±3)の範囲を探索する。範囲が広い分だけ、当然、計算時間が多くかかる。
+
+
+◎
+tsubo.pl --dist_min <POSCAR
+tsubo.pl --distance_min <POSCAR
+POSCARの最小原子間距離を出力する。想定外に小さい値が出てきた場合、POSCARを再考すべきかもしれない。
+
+
+◎
+tsubo.pl --dist_atom_list D (list) <POSCAR
+tsubo.pl --distance_atom_list D (list)<POSCAR
+POSCARの(list)の原子について、距離D以下の原子の距離と場所を表示する。Dは必ず入力すること。(list)は、 1 3..5 のように入力する。スペース区切り、連番は..で指定する。（この場合、1 3 4 5が指定される）。
+
+
+tsubo.pl --solid_angle d  <POSCAR
+
+表面サイトか否かの自動判定を行う。dは探索カットオフ。詳細はHinuma et al, Trans. Mat. Res. Soc. Japan  45 (4) 115-120 (2020) 参照。
+qconvex（ここから入手可能なqhullと同梱 http://www.qhull.org/ ）がコマンドラインで実行できる必要がある。
+
+
+◎
+tsubo.pl --coord [Cutoff1] [Cutoff2]
+tsubo.pl --coordination [Cutoff1] [Cutoff2]
+tsubo.pl --coord_large [Cutoff1] [Cutoff2]
+tsubo.pl --coordination_large [Cutoff1] [Cutoff2]
+各原子について、配位数を返す。_largeのほうが幅広い範囲を見る。
+配位数は「(最短原子間距離ｘCutoff1内の原子数)*0.3 + (最短原子間距離ｘCutoff2内の原子数)*0.7
+要するに最短原子間距離ｘCutoff1内の原子数ｘ１，それ以上最短原子間距離ｘCutoff2内の原子数ｘ0.7
+Cutoff1,Cutoff2のデフォルト値は1.1と1.18。
+
+
+tsubo.pl --maxgap <POSCAR
+tsubo.pl --max_gap <POSCAR
+原子位置のz座標の最大のギャップ（間隔）を返す。
+gap_size 0.307174481618976 1.75949756440748
+のような値が返るが、最初の数はfractionalで、最後の数はcartesian。
+cartesianはfractionalの数にc軸長さをかけたものではなく、[(axb)・c]/|axb|（セルの体積=分子を、セルのab面内の面積=分母で割った値、すなわちセルの高さ）をかけたものである。スラブモデルの場合、cartesianの値は厳密な真空層の厚さである（最表面の原子がなす層の間の距離）。
+
+
+tsubo.pl --volperatom <POSCAR
+tsubo.pl --vol_per_atom <POSCAR
+原子あたり体積を表示する(A^3/atom)。
+
+tsubo.pl --nameatom N <POSCAR
+tsubo.pl --name_atom N <POSCAR
+POSCARのN番目の原子の元素名(6行目から取得)と元素の番号(7行目から取得)を返す。
+番号は1からカウント。
+
+
+◎
+tsubo.pl --kpoints Spacing [Mesh] <POSCAR
+逆格子空間で逆格子ベクトルごとに Spacing 間隔のK点を作り、標準出力に出力する。
+逆格子ベクトルの定義は、例えばb1=2π(b2xb3)/(b1*(b2xb3)である。
+逆格子ベクトル長さをb、間隔をsと置くと、k点の数は
+int(b/s+0.7)とする。(0は1に切り上げ)
+[Mesh]はKPOINTSの3行目に入る文字列で、GかMのいずれかで始まる必要がある。
+デフォルトはG (Gamma-center)
+Spacingは絶縁体（＝バンドギャップあり）は0.3、金属（＝バンドギャップなし）は0.1程度が理想的だが、金属はものによってはK点密度を下げても（値を大きくしても）問題ないものがあるかもしれない。実際には0.2くらいで妥協する事が多い。
+
+
+tsubo.pl --kpoints_even Spacing [Mesh] <POSCAR
+逆格子空間で逆格子ベクトルごとに Spacing 間隔のK点を作り、標準出力に出力する。
+2*int(b/2s+0.7)とする。(0は2に切り上げ)
+[Mesh]はKPOINTSの3行目に入る文字列で、GかMのいずれかで始まる必要がある。
+デフォルトはG (Gamma-center)
+
+
+tsubo.pl --kpoints_slab Spacing [Mesh] <POSCAR
+スラブモデル計算用。
+--kpoints同様だが、３番目の数が必ず1になる。
+
+
+tsubo.pl --kpoints_even_slab Spacing [Mesh] <POSCAR
+スラブモデル計算用。
+--kpoints_even同様だが、３番目の数が必ず1になる。
+
+
+tsubo.pl --slabarea <POSCAR
+tsubo.pl --slab_area <POSCAR
+スラブモデル計算用。
+スラブ表面の面積 (外積 axb の絶対値の*2倍*）を返す。
+
+バルク計算と表面の計算に対し
+tsubo.pl --natoms <POSCAR
+で原子数比を求め、
+grep E0 OSZICAR |  awk 'END {print $5}'
+でエネルギーを求め、スラブモデルのエネルギーから同原子数のバルクのエネルギーを引き、
+tsubo.pl --slabarea < (スラブモデルPOSCAR)
+で割れば、eV/A2単位で表面エネルギーを出すことができる。
+
+カレントディレクトリ、エネルギーと原子数を並べてoutput.txtに出力する場合、
+pwd | tr -d '\n' >> output.txt; grep E0 OSZICAR |  awk ' END {print " " $5*1 " "}' | tr -d '\n' >> output.txt; tsubo.pl --natoms < POSCAR >> output.txt
+エネルギーと原子数とスラブ表面面積を並べてoutput.txtに出力する場合、
+pwd | tr -d '\n' >> output.txt; grep E0 OSZICAR |  awk ' END {print " " $5*1 " "}' | tr -d '\n' >> output.txt; tsubo.pl --natoms < POSCAR | tr -d '\n' >> output.txt; echo -n " " >> output.txt; tsubo.pl --slabarea < POSCAR >> output.txt
+のようにするのが便利。
+
+
+tsubo.pl --average_atom N1 N2 N3... <POSCAR
+tsubo.pl --average_site N1 N2 N3... <POSCAR
+原子N1, N2, N3... の平均位置を求める。
+NEBで四面体サイト・八面体サイトの中心を得たい場合などに便利。
+原子の数はいくつでも構わない。
+なお、xyzの値はPOSCARの値をそのまま使う。都合よく丸めたりしないので(0.99→-0.01等)セル境界近くで計算する場合は要注意。
+
+
+◎
+tsubo.pl --sgnumber <POSCAR
+tsubo.pl --sg_number <POSCAR
+POSCARの空間群番号を提供する。
+phonopyを使用する。
+
+
+◎
+tsubo.pl --sgsymbol <POSCAR
+tsubo.pl --sg_symbol <POSCAR
+POSCARの空間群の記号(P1等)を提供する。
+phonopyを使用する。
+
+
+▲
+tsubo.pl --2Dsgnumber z <POSCAR
+POSCARの与えられたz座標断面の二次元空間群番号を提供する。
+phonopyを使用する。
+
+▲
+tsubo.pl --2Dsgsymbol z <POSCAR
+POSCARの与えられたz座標断面の二次元空間群記号(p1, p2mg等)を提供する。
+phonopyを使用する。
+
+
+tsubo.pl --pgsymbol <POSCAR
+POSCARの点群の記号(1, 4/mmm等)を提供する。
+phonopyを使用する。
+
+
+tsubo.pl --crystalsystem <POSCAR 
+tsubo.pl --crystal_system <POSCAR 
+POSCARの結晶系を提供する。返ってくるのはTriclinic,Monoclinic,Orthorhombic,Tetragonal,Hexagonal_Rhombohedral,Cubicのいずれか。空間群番号で判定している。phonopyを使用する。
+
+
+tsubo.pl --bravais <POSCAR 
+POSCARのBravais symbolを提供する。返ってくるのはaP, oS等14種類のいずれか。空間群番号とcenteringで判定している。phonopyを使用する。
+
+
+▲
+tsubo.pl --sclatticetype <POSCAR
+POSCARのStandard conventionalの格子の種類(CUB, ORCF2等)を提供する。Comp Mat Sci 49 (2010) 299 Setyawan and Curtarolo の定義による。
+phonopyを使用する。
+
+
+tsubo.pl --normal_vector H K L length <POSCAR
+HKL表面のスラブを作成した際、面内方向に厳密に垂直な長さlengthのベクトルを求める。出力はベクトル３つで、面内方向の基底ベクトル２つ（--direction_supercellのものと同一である）と、それに垂直なベクトルである。
+phonopyを使用する。
+
+
+tsubo.pl --isometry [info] <POSCAR
+POSCARの全てのisometry（対称操作） を matrix + vector表記で出力する。
+info を引数に入れると tsubo.pl --symop_info の情報も併記する。
+phonopyを使用する。
+
+
+☆
+tsubo.pl --isometry_nonpolar [info] <POSCAR
+POSCARのisometry（対称操作）のうちnonpolarであることを保証するもの を matrix + vector表記で出力する。具体的には* * * * * * 0 0 -1 * * * のものを抽出する。すでに表面モデルができている場合に便利。
+info を引数に入れると tsubo.pl --symop_info の情報も併記する。
+phonopyを使用する。
+
+
+☆
+tsubo.pl --isometry_nonpolar_square <POSCAR
+POSCARのisometry（対称操作）のうち、nonpolarであることを保証するもの、かつisometryを2乗したらmatrix partがidentity matrixになっているものを matrix + vector表記で出力する。2乗した後のvector partも表示する。これが格子ベクトルの奇数倍だとglide/screwになる。
+この出力については、vector partが小数点5桁で丸められていない真の値を返す。
+phonopyを使用する。
+
+
+☆
+tsubo.pl --isometry_nonpolar_image x y z  <POSCAR
+tsubo.pl --isometry_nonpolar_image N <POSCAR
+POSCARのisometry（対称操作）のうちnonpolarであることを保証するもの により、座標(x,y,z) あるいは原子Nがどこの座標に対応するかを出力する。
+POSCARはDであること(Cは強制的にDに変換)。
+出力は　[座標] for [isometry] もしくは　[通しの原子番号] for [isometry] 
+通しの番号は1から始まる。
+phonopyを使用する。
+
+
+☆
+tsubo.pl --surface_isometry H K L [asis] <POSCAR
+HKL表面のスラブを作成した際、nonpolarになるかどうかをチェック。
+--direction_primitive H K L [asis] でPOSCARを作成し、isometryの行列要素が(*,*,*,*,*,*,0,0,-1)の形式であるものをを matrix + vector表記で出力する。ない場合はn/aが表示される。n/aが出る場合、HKL表面のスラブは必ずpolarである。
+asisを引数にいれるとPOSCARをそのまま扱う。入れない場合は、結晶学のconventional cellに変換する。
+phonopyを使用する。
+
+
+☆
+tsubo.pl --unique_nonpolar [h k l] [cap] <POSCAR
+無極性になりうる面指数を、スラブ面積順に示す。面指数はunique (全て結晶学的に異なる)なものが返る。HKLを指定した場合、hは0～h、kは-k～k、lは-l～lを探索。デフォルトではH=K=L=4。なお、指数は結晶学conventional cellに対するもの。HKLを大きくすると計算時間が増えるが、面指数が3や4でも比較的面積が小さいセルができることがある（特にrhombohedralを含むcenteringがある場合）。capを指定すると、nonpolar表面のうち、面内面積が最小のもののcap倍までしか表示しない。デフォルトはcap実質なし(9999)。
+--unique_nonpolarを起点として、特定のPOSCARに対する推奨無極性面を全て求めることができる。
+例：
+tsubo.pl --unique_nonpolar 4 4 4 5 < POSCAR > tempfile1
+tsubo.pl --termination_polarity_list tempfile1 < POSCAR > tempfile2
+egrep 'A|B' tempfile2 | head -3 > tempfile3
+tsubo.pl --slab_poscar_list tempfile3 20 15 <POSCAR
+rm tempfile?
+
+ここでh=k=l=4, cap=5で表面検索
+nonopolar type A,Bのうち、面内面積が小さいもの3つ選択
+slab thickness 20 vacuum thickness 15でスラブPOSCAR自動作成
+
+A,B,C全て欲しいなら egrep 'A|B|C'とする。
+
+
+注意: uniqueの選定基準はHinuma et al., Phys. Rev. Mater. 2.124603 (2018) Appendix に準拠する。26781202より前のバージョンと選定基準が異なるケースがある（一部rhombohedral, cubic）。rhombohedralの結晶については、入力される面指数はhexagonal axisのものであるが、uniqueの判定はrhombohedral axisで行っている（内部で変換している）。
+注意(2019/11/14): PRM論文にミスがあるのが判明。比較的レアな空間群が対象。
+・ -3(hP) (#147)で(hkl) h≧0,k≧0→ (hkl) h≧0,k＞0 と (001)：(h0l)と(0h-l)の2通りあったので改訂。
+・ -3(hR) (#148)で(hk0) h≧0 → (hk0) h≧0,k≠0 ：(100)と(010)の2通りあったので改訂。
+・ #162-163: 誤植。（誤）-31m　（正）-3m1
+
+
+生成ファイル名は POSCAR.NPA.0.E.24.21 のようなフォーマットである。NPA/NPB/NPCはnonpolar type A, B, C のいずれかであるかを示す。その次の値(終端番号)は0,1,2,3のいずれかであり、それぞれHinuma et al. Phys. Rev. Mater. 2.124603 (2018)  Fig 14のRange II,I,III,IVに相当する。その次の文字（終端種類）はNonpolar AならE,F,G,H、Nonpolar BならJ,K,L,M、Nonpolar CならU,V,W,X,Y,Z,Q,Tのいずれかである。Nonpolar AとBの場合、同じ終端の場合は同じ文字を使用する。次の数字はセルの原子数であり、最後の数字はスラブの厚さ（オングストローム単位）である。一文字の英字は「POSCAR」と「NPA」「NPB」「NPC」に現れないよう選択されているため、特定のnonpolar typeをgrepで抽出できるので便利である。また、終端種類で同じ英字が二回以上出てくる場合、原子数、スラブ厚、終端番号で優先順位を決めておくことで、同じ種類の終端を重複して計算することを防ぐことができる。
+
+
+☆
+tsubo.pl --to_unique_nonpolar H K L <POSCAR
+HKL面と等価なunique nonpolar面（PRMで定義）を出力する。
+Nonpolar, Not_corime, All_zero, もしくは面指数が返ってくる。
+面指数はcrystallographic conventional cellのものとする。
+
+
+☆
+tsubo.pl --isometry_nonpolar_image_file file W11 W12 W21 W31 W12 W22 W32 W13 W23 W33 w1 w2 w3  <POSCAR
+ファイルfileに入力されている原子に対し、与えられたisometry（対称操作、W11～w3）によるイメージを作成する。
+ファイルのフォーマットは
+0.5 0.5 0.1
+0.25 0.25 0.15
+のように、原子座標が3つずつ並ぶものである。
+言うまでもなく、fractional coordinatesを使用する。
+このファイルに対しisometryとして-1 0 0 0 -1 0 0 0 -1 0.8 0.6 0.4 (反転対称、対称点は0.4 0.3 0.2) を入力すると、
+0.3 0.1 0.3
+0.55 0.35 0.25
+が返ってくる。
+tsubo.pl内で正確な値を割り出すため、isometryのvector partは厳密な値をいれなくてよい(phonopyが吐き出す、小数点以下５桁の値でよい)。
+phonopyを使用する。
+
+
+☆
+tsubo.pl --termination_polarity H K L [asis] <POSCAR
+nonpolarなスラブがとれるかどうか、スラブをどこで切ればいいかの情報を返す。最もおすすめな切り方を返す（nonpolar type A/B→ nonpolar type C→polarの順）
+asisを引数にいれるとPOSCARをそのまま扱う。入れない場合は、結晶学のconventional cellに変換する。
+
+
+☆
+tsubo.pl --termination_polarity_full H K L [asis] <POSCAR
+nonpolarなスラブがとれるかどうか、スラブをどこで切ればいいかの情報を返す。
+asisを引数にいれるとPOSCARをそのまま扱う。入れない場合は、結晶学のconventional cellに変換する。
+
+
+☆
+tsubo.pl --termination_polarity_list file <POSCAR
+ファイルfileにあるHKL表面が、nonpolar type A, B, C, nonstoichiometryのどれになりうるか、面内面積、面内面積比（ABCあわせて、最小nonpolar表面に対する）、hkl primitive cell厚を表示する。fileの各行のフォーマットは
+H K L [コメント]
+である。 tsubo.pl --unique_nonpolar [h k l] [cap] <POSCARの標準出力された結果を、入力ファイル file として使用することができる。
+
+
+☆
+tsubo.pl --inplane_lattice_vector H K L [asis] <POSCAR
+HKLの面内格子ベクトルを長さ(angstrom)と相対的角度でソートして返す（極座標表記）。centeringがあるケースなどで格子ベクトルが基底ベクトルの分数倍になる場合、できるだけ分数で返すようにする。検索半径は適当な値を用いているが、通常は小さいものを選ぶ。
+
+
+☆
+tsubo.pl --terrace_vicinal_vector H K L He Ke Le [asis] <POSCAR
+tsubo.pl --vicinal_terrace_vector H K L He Ke Le [asis] <POSCAR
+HKL表面でステップエッジがHe Ke Le方向の場合（分数指定可）、ステップエッジ上端から隣のステップエッジ下端までの格子ベクトル(terrace vector, これはHKL表面内)とステップエッジ上端からステップエッジ上端までの格子ベクトル(vicinal vector, これはHKL表面外)を返す。また、terrace, vicinal vectorのedge vectorに対し垂直な長さと、ステップの高さ（HKL方面に鉛直の方向）の値等も返す。
+
+
+☆
+tsubo.pl --orientation_relative_all H K L Hmax Kmax Lmax <POSCAR
+tsubo.pl --relative_orientation_all H K L Hmax Kmax Lmax <POSCAR
+HKL面の法線ベクトルに対し、hkl面の法線ベクトルがなす角θを与える。また、HKL面における、hkl面の法線ベクトルの「方角」φも与える。ここで、hklの面指数は、-Hmax≦h≦Hmax、-Kmax≦k≦Kmax、-Lmax≦k≦Lmaxとなる、互いに素のhklをすべて探索するが、θ<90度のみ表示する。φの相対的な値に意味はあるが、本質的には絶対的な値に価値がない。HKL面は2つの面方位のファセットに分かれるのならば、φはちょうど180度ずれる。
+出力例は
+h k l theta phi h k l theta phi
+2  0  -1 38.2 7.1  1  1  -2 16.1 7.1 (+180)
+4  -1 -1 86.5 14.1  -1 1  -1 42.4 7.1 (+180)
+3  0  -2 33.8 22.8  -3 1  0  72.9 7.1 (+180)
+3  -1 -1 88.4 22.8  -2 1  0  67.9 16.8 (+180)
+4  -1 -2 72.4 26.8  0  1  -1 34.8 22.8 (+180)
+3  -1 -2 73.2 35.6  -1 1  0  62.7 29.6 (+180)
+
+(以下略)
+となり、ここではφがそれぞれ7.1と7.1+180である、20-1面と11-2面へのファセット分離の可能性が見られる。対になる面がない4-1-1ファセットの生成は考えられない。また、θが小さい11-2面はHKL面とほぼ平行であり、逆に大きい-310面はほぼ垂直である。
+
+このコマンドは、--relative_orientation_facetと異なり、POSCARそのものの面方位を尊重する。crystallographic conventional cellへの変換は*行われない*。
+
+詳細は　 Yoyo Hinuma, Takashi Kamachi, Nobutsugu Hamamoto.  Mater. Trans. 61, 1430 (2020) 参照。 
+
+☆
+tsubo.pl --relative_orientation_facet H K L Hmax Kmax Lmax <POSCAR
+tsubo.pl --orientation_relative_facet H K L Hmax Kmax Lmax <POSCAR
+--relative_orientation_allに近いコマンドである。
+HKL面の法線ベクトルに対してhkl面の法線ベクトルがなす角θを与える。また、HKL面における、hkl面の法線ベクトルの「方角」φも与える。ここで、hklの面指数は、-Hmax≦h≦Hmax、-Kmax≦k≦Kmax、-Lmax≦k≦Lmaxとなる、互いに素のhklをすべて探索する。
+ただし、
+-無極性面のファセットが作れる面指数のみを返す
+-面指数に対応するunique nonpolar orientationを返す
+-POSCARはcrystallographic conventional cellに*変換される*
+の大きな違いがある。
+出力例は：
+前半
+h k l unique theta phi
+  2  0 -1 20-1 38.2 7.1
+ -3  1  0 310 107.1 7.1
+ -1  1 -1 111 137.6 7.1
+  1  1 -2 11-2 163.9 7.1
+  3  0 -2 30-2 33.8 22.8
+  3 -1 -1 31-1 88.4 22.8
+（略）
+後半：
+Step kumiawase
+h1 k1 l1 unique1 theta1 h2 k2 l2 unique2 theta2 theta1+theta2 phi1
+  2  0 -1 20-1 38.2   1  1 -2 11-2 16.1  54.3 7.1
+  2  0 -1 20-1 38.2  -1  1 -1 111 42.4  80.6 7.1
+  3  0 -2 30-2 33.8   0  1 -1 01-1 34.8  68.6 22.8
+  1  0 -1 10-1 31.7   2  1 -2 21-2 11.1  42.8 45.3
+  1  0 -1 10-1 31.7   1  1 -1 11-1 29.9  61.7 45.3
+（略）
+となる。
+前半では、φが180度を超える表面については、180-θとφ-180を用いて表記する。
+これにより、ファセットが生成可能な組は、同じφで表示される。また、unique nonpolar orientation（Physical Review Materials 2, 124603参照）も併せて表示される。
+
+unique nonpolar orientationはスペースなしで表示される。このため、Excelで表面エネルギーをvlookupで呼び出すのに便利。θは高精度で表示されるので、そのままExcelで処理が可能に。
+
+後半では、ファセットの面指数の組が表示される。
+2つのファセットのθがθ1,θ2、そして表面エネルギーがE1,E2のとき、HKL面の表面エネルギーをE0とおくと、正弦定理よりE1sinθ2+E2sinθ1 < E0sin(θ1+θ2)のときに自発的にファセット生成する。後半ではθ1+θ2≧９０度の組み合わせ（ステップモデルとして採用可能な組み合わせ）のみが表示される。
+詳細は　 Yoyo Hinuma, Takashi Kamachi, Nobutsugu Hamamoto.  Mater. Trans. 61, 1430 (2020) 参照。 
+
+
+☆
+tsubo.pl --facet_surface_energy H K L Hmax Kmax Lmax library <POSCAR
+tsubo.pl --facet_energy H K L Hmax Kmax Lmax library <POSCAR
+tsubo.pl --surface_energy_facet H K L Hmax Kmax Lmax library <POSCAR
+POSCARのHKL面が再構成しファセットを形成した場合の表面エネルギーを表示する。
+ファセットの面指数hklとしては、-Hmax≦h≦Hmax、-Kmax≦k≦Kmax、-Lmax≦k≦Lmaxとなる、互いに素のhklをすべて探索する。
+面指数は、POSCARをcrystallographic conventional cellに変換したものに対応する。
+ファセットの表面エネルギーとして、libraryを参照する。libraryの書式は
+010 30.442
+10-1 32.983
+201 41.535
+4-21 83.124
+のように、unique nonpolar orientation（Physical Review Materials 2, 124603参照）を空白なしで表記したものと、表面エネルギーを並べたものとする。
+
+返ってくる値は
+
+Minimum_facet 100/20-1 59.8655137360385 Original 6 0 -1 Unique 60-1 98.32 Delta -38.4544862639615 
+のようになる。
+
+
+tsubo.pl --stepenergy Esurf_vicinal Esurf_terrace N1 N2 ... <POSCAR
+tsubo.pl --step_energy Esurf_Evicinal Esurf_terrace N1 N2 ... <POSCAR
+ステップエッジを有するモデルでステップエネルギーを出す。入力はvicinal表面エネルギー、 terrace表面エネルギー、あとテラスを構成する原子リスト(最低2つ)。詳細は別途論文にまとめる。
+
+☆
+tsubo.pl --equivalent_site atom_number [nosort] <POSCAR
+原子atom_numberと等価な原子を表示する。	nosortもしくはno_sortを引数としていれると、結果をソートしない（後述）。
+
+例えば以下のようなPOSCARを用意する。
+
+Test
+1
+2 0 0
+0 2 0
+0 0 3
+H 
+8 
+D
+0.1 0.2 0.2
+-0.1 0.2 0.2
+0.1 -0.2 0.2
+-0.1 -0.2 0.2
+0.2 0.1 0.2
+-0.2 0.1 0.2
+0.2 -0.1 0.2
+-0.2 -0.1 0.2
+
+tsubo.pl --equivalent_site 3 nosort <POSCAR
+の実行結果は以下のようなものである。
+
+Kuukan gun 99 P4mm
+Touka na gensi: 1 2 3 4 5 6 7 8
+Type 4 : 0 -1 0 1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_4_6_7 2_3_5_8
+Type 2 : -1 0 0 0 -1 0 0 0 1 0.00000 0.00000 0.00000 : 1_4 2_3 5_8 6_7
+Type 4 : 0 1 0 -1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_4_6_7 2_3_5_8
+Type m : -1 0 0 0 1 0 0 0 1 0.00000 0.00000 0.00000 : 1_2 3_4 5_6 7_8
+Type m : 0 1 0 1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_5 2_7 3_6 4_8
+Type m : 1 0 0 0 -1 0 0 0 1 0.00000 0.00000 0.00000 : 1_3 2_4 5_7 6_8
+Type m : 0 -1 0 -1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_8 2_6 3_7 4_5
+
+まず、空間群がP4mmであり、また入力した原子3と等価なのは原子1..8（全ての原子）であることがわかる。
+Type 4, 2, mなどは対称操作（コロンの間の12の数字）の種類を示す。これは行列部分のtraceとdeterminantで機械的に判定されている。ここではproperとimproperの対称操作(rotationとscrew, mirrorとglide)は区別されない。また、より詳細な対称操作（回転軸がどの方向か、等）も表示されない。
+
+一番上の Type 4 : 0 -1 0 1 0 0 0 0 1 0.00000 0.00000 0.00000 の対称操作（4回対称軸である）では、{1,4,6,7}と{2,3,5,8}の原子がそれぞれ等価（対称操作に対し群である）ことを示している。
+また、５番目のType m : 0 1 0 1 0 0 0 0 1 0.00000 0.00000 0.00000 では、{1,5}等が等価であることがわかる。
+
+原子を削っても対称操作を維持するためには、例えば一番上の対称操作を残したい場合、{1,4,6,7}と{2,3,5,8}はそれぞれすべて残すか、全て削る必要がある。
+２番めの２回対称と５番目の鏡像対称を残す場合、{1,4,5,8}と{2,3,6,7}のそれぞれを全て残すか、全て削る必要がある。例えば、1を削るなら4を削る必要があり（２回対称操作）、1と4を削るなら5と8をそれぞれ削る必要がある(鏡像対称)。5と8は２回対称で等価であり、1,4,5,8はめでたく群になっている（等価な組み合わせが閉じている）ことがわかる。
+５番目と６番目の鏡像対称を両立させようとすると、1から8全てを残すか全て消すしか無い。別の言い方をすれば、５番目と６番目の鏡像対称を両立させる場合、対称性は落とせない。このように、残す対称性と消す対称性の組み合わせは自由に選べないことに注意。
+
+表示される対称操作はユニットセルの対称操作-1（自明のidentityは表示されない）である。fcc conventional cellだと191の対称操作が全て表示されてしまう。
+
+なお、nosortを入れない（省略）すると、例えば以下のように結果が等価な原子でソートされる。
+
+Kuukan gun 99 P4mm
+Touka na gensi: 1 2 3 4 5 6 7 8
+Type m : -1 0 0 0 1 0 0 0 1 0.00000 0.00000 0.00000 : 1_2 3_4 5_6 7_8
+Type m : 1 0 0 0 -1 0 0 0 1 0.00000 0.00000 0.00000 : 1_3 2_4 5_7 6_8
+Type 2 : -1 0 0 0 -1 0 0 0 1 0.00000 0.00000 0.00000 : 1_4 2_3 5_8 6_7
+Type 4 : 0 -1 0 1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_4_6_7 2_3_5_8
+Type 4 : 0 1 0 -1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_4_6_7 2_3_5_8
+Type m : 0 1 0 1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_5 2_7 3_6 4_8
+Type m : 0 -1 0 -1 0 0 0 0 1 0.00000 0.00000 0.00000 : 1_8 2_6 3_7 4_5
+
+phonopyを使用する。
+
+
+▲☆
+tsubo.pl --2ddiffraction H K L <POSCAR 
+POSCARのHKL方向 (zone axis) から見た二次元回折パターンの点を表示する。方位は入力POSCARの[H K L]方向から見たものである。六方晶系でも数字は３つのみ入力すること。例：1 1 -2 0 でなく 1 1 0 を使用する。二次元回折パターンは二次元の格子であるため、格子ベクトル、相対長さ、相対角度、相対xy座標を４つ乃至６つ表示する。言い換えると、格子ベクトルの位置関係を極座標と直交座標で表示する。結晶はcenteringがないものとして計算するため、消滅則(extinction rule)は顕に考慮しない（消滅すべき点でも消滅しないものとして扱う）。
+
+計算結果の出力例は以下のとおり。（cubic cellの100方向で計算した例）
+Diffraction spots
+Index Kyori Kakudo X-zahyo Y-zahyo
+  0   1   0  1.00   0  1.0  0.0
+  0   0   1  1.00  90  0.0  1.0
+  0  -1   0  1.00 180 -1.0  0.0
+  0   0  -1  1.00 270  0.0  -1.0
+Shometsusoku (Extinction Rule)
+Syutsugen jyouken, moshi areba
+Cubic:
+Face-centering: h,k,l all odd or all even
+Body-centering: h+k+l=2n
+b-glide (100): k=2n @ 0kl
+c-glide (100): l=2n @ 0kl
+n-glide (100): k+l=2n @ 0kl
+d-glide (100): k+l=4n, k=2n, l=2n @ 0kl
+n- and c-glide (1-10): l=2n @ hhl,h-hl
+d-glide (1-10): 2h+l=4n @ hhl,h-hl
+2_1 or 4_2 screw [100]: h=2n @ h00
+4_1 or 4_3 screw [100]: h=4n @ h00
+
+消滅則は結晶学の慣習に従った場合は例えば以下のとおりである。
+Face centered (F...) H,K,Lの偶奇が異なると消滅
+Body centered (I...) H+K+Lが奇数だと消滅
+C face centered (C...) H,Kの偶奇が異なると消滅
+A face centered (A...) K,Lの偶奇が異なると消滅
+消滅則が現れる理由として以下が考えられる。逆格子空間の格子はconventionalではなくprimitive basis vectorsにより定まる。primitive basis vectorの長さはconventional basis vectorに比べて短いので、逆格子空間だとprimitiveで構成した格子点間の距離はconventionalの場合の格子点間の距離より長くなる。故に、conventionalで構成した場合の格子点の幾つかは、primitiveの場合では存在しないため、なかったことにする必要がある。逆に考えると、fccであってもprimitive basis vectorを元に逆格子を作った場合、消滅則は不要である。もちろん、結晶の方位の数字はprimitiveとconventionalで異なるので、注意が必要である。
+これに加えて、screw axisやglide plane等で追加の消滅則が発生する場合がある。詳しくは　http://www.xtal.iqfr.csic.es/Cristalografia/parte_07_2_1-en.html　等を参照のこと。該当しうる消滅則の一覧も結果と併せて表示されるが、これは格子定数の情報のみを参考として表示される。実際の空間群とは全く関係ない。
+
+
+☆
+tsubo.pl --similarity original_POSCAR < new_POSCAR 
+
+original_POSCARとnew_POSCARの類似度を示す。
+LR3, LR2, LR1, drift (Cartesian,3値), CR (angstrom), CR' (無次元), 最大変位(new_POSCARの格子基準、angstrom)を返す。
+定数の定義はHinuma et al, PRB, 96, 094102 (2017)参照。
+
+
+tsubo.pl --supercell_matrix original_POSCAR < new_POSCAR 
+
+--supercell P Q R S T U V W X <original_POSCAR > new_POSCAR となる P Q R S T U V W X を返す。なお、内部座標については一切見ない。基底ベクトルだけで判断する。
+
+
+tsubo.pl --supercell_matrix_round original_POSCAR < new_POSCAR 
+
+--supercell P Q R S T U V W X <original_POSCAR > new_POSCAR となる P Q R S T U V W X を返す。P-Xは全て整数に丸める。なお、内部座標については一切見ない。基底ベクトルだけで判断する。
+
+
+C) POSCARを改造する機能
+C1) 格子を変更する機能
+
+
+tsubo.pl --tidy_basis_vector <POSCAR
+基底ベクトル（3-5行目）を
+A 0 0
+B C 0
+D E F
+の形に変更する。格子定数は変わらない。
+
+
+tsubo.pl --scale A <POSCAR
+格子ベクトルを全てA倍する。
+
+
+tsubo.pl --scale A B C <POSCAR
+格子ベクトルを上から順にA,B,C 倍する。
+
+例：3~5行目が
+
+F G H
+I J K
+L M N
+
+の場合、
+
+A*F A*G A*H
+B*I B*J B*K
+C*L C*M C*N
+
+に変換される。
+
+tsubo.pl --scalexyz A B C <POSCAR
+xyz座標が順にA,B,C倍される。
+
+例：3~5行目が
+
+F G H
+I J K
+L M N
+
+の場合、
+
+A*F B*G C*H
+A*I B*J C*K
+A*L B*M C*N
+
+に変換される。
+
+
+tsubo.pl --strainlattice A B C D E F G H I <POSCAR
+
+格子に歪を与える。
+
+例：3~5行目が
+
+P Q R
+S T U
+V W X
+
+の場合、
+
+[P Q R] * [A+1 B C] 
+[S T U] * [D E+1 F]
+{V W X] * [G H I+1] 
+
+に変換される。
+たとえば100方向に歪sを加える場合、A~Iはs 0 0 0 0 0 0 0 0
+110方向ならs s 0 s s 0 0 0 0
+111方向ならs s s s s s s s s となる。
+
+
+▲
+tsubo.pl --rotateaxis abc <POSCAR
+
+Cartesianの内部座標を固定してPOSCARの軸を回転させる。
+引数として許されるのは以下の24通りの文字列と番号(順に1～24)
+
+abc bca cab -acb cb-a b-ac
+c-ba -bac ac-b ba-c a-cb -cba
+a-b-c -b-ca -ca-b -ab-c b-c-a -c-ab
+-a-bc -bc-a c-a-b -a-c-b -c-b-a -b-a-c
+
+たとえば、-acbならa'=-a b'=c c'=bとなるように
+軸abcをa'b'c'に変更する。
+右手系のPOSCARの場合、軸の回転後も右手系。
+
+
+☆
+tsubo.pl --hkl_supercell H K L [asis]
+tsubo.pl --hklcell_supercell H K L [asis]
+c軸の方位がHKLで、a,b軸の方位がc軸の方位と直交するsupercellを作る。デフォルトはconventional cellをもとに方位を取るが、H K L の次に asis という引数があれば、conventional cellを作らずに、与えられたPOSCARをもとに方位を決める。生成されるPOSCARの基底ベクトルa1(a軸方向)およびa2(b軸方向)は面内方向ベクトル、a3(c軸方向)は[HKL]方向（厚さ方向）のベクトルとなる。a1およびa2は最短なものを自動的に探索する。なお、a3軸を伸ばしたスーパーセルを用意し、z座標が特定の範囲の原子を抜けばHKL面を有するスラブができる。
+Phonopyを使用する。
+
+
+☆
+tsubo.pl --hkl_primitive H K L [asis] 
+tsubo.pl --hklcell_primitive H K L [asis] 
+a,b軸の方位が方位HKLと直交するprimitive cellを作る。
+a,b軸の基底ベクトルはhklcell_supercellと同じである。primitiveにする代償として、c軸の方位がHKLになるとは限らない。デフォルトはconventional cellをもとに方位を取るが、H K L の次に asis という引数があれば、conventional cellを作らずに、与えられたPOSCARをもとに方位を決める。生成されるPOSCARの基底ベクトルa1およびa2は面内方向ベクトルとなる。a1およびa2は--hklcell_supercellで得られるものと同一である。なお、cを伸ばしたスーパーセルを用意し、z座標が特定の範囲の原子を抜けばHKL面を有するスラブができる。
+Phonopyを使用する。
+
+
+☆
+tsubo.pl --slab_poscar slab_thickness vacuum_thickness H K L [asis] <POSCAR
+tsubo.pl --make_slab_poscar slab_thickness vacuum_thickness H K L [asis] <POSCAR
+nonpolar type AかBのスラブが取れる場合、スラブ厚がslab_thickness以上、真空層厚がvacuum_thickness以上（単位A）のPOSCARをカレントディレクトリに出力する。c軸はmaxorthoが強制適用。
+Phonopyを使用する。
+
+
+☆
+tsubo.pl --slab_poscar_directory slab_thickness vacuum_thickness H K L [asis] <POSCAR
+tsubo.pl --make_slab_poscar_directory slab_thickness vacuum_thickness H K L [asis] <POSCAR
+nonpolar type AかBのスラブが取れる場合、スラブ厚がslab_thickness以上、真空層厚がvacuum_thickness以上（単位A）のPOSCARをH_K_Lディレクトリを作成して出力する。c軸はmaxorthoが強制適用。
+Phonopyを使用する。
+
+
+☆
+tsubo.pl --slab_poscar_list file slab_thickness vacuum_thickness  <POSCAR
+tsubo.pl --make_slab_poscar_list file slab_thickness vacuum_thickness  <POSCAR
+nonpolar type AかBのスラブが取れる場合、スラブ厚がslab_thickness以上、真空層厚がvacuum_thickness以上（単位A）のPOSCARをH_K_Lディレクトリを作成して出力する。H,K,Lはファイル file から取得する。fileの各行のフォーマットは
+H K L [コメント]
+である。 tsubo.pl --unique_nonpolar [h k l] [cap] <POSCARの標準出力された結果を、入力ファイル file として使用することができる。
+c軸はmaxorthoが強制適用。
+Phonopyを使用する。
+
+
+☆
+tsubo.pl --slab_step he ke le ht kt lt hv kv lv slab_thickness vacuum_thickness [asis] 
+--slab_step_poscar, --slab_facet, --slab_facet_poscarも可
+ステップを有するスラブモデルを作成する。(slab_poscarのstepつき）
+ベクトルの定義については論文参照。
+
+
+☆
+tsubo.pl --slab_for_step he ke le hv kv lv slab_thickness vacuum_thickness [asis] 
+--slab_for_step_poscar, --slab_no_facet, --slab_no_facet_poscarも可
+
+ステップを有するスラブモデルを作成するために、原子を削る前のスラブモデルを作成する。(hv kv lv)と(he ke le)がin-plane vector になる。ベクトルの定義については Hinuma et al. Mater. Trans. 61 p78 (2020) 参照。
+
+ステップモデルの生成フロー（CeO2 (111)を例に）：
+1)まずedge vectorを決める。
+  tsubo.pl --inplane_lattice_vector 0 1 0 < POSCAR
+0 1/2 -1/2系が6つ、1/2 1/2 -1系が6つある。（他にも出てくる）
+同じ長さのものは、等価である可能性がある。（長さが違うと必ず等価でない。）
+この２系統は角度が60度おきになっている。だが、結晶構造を見ると等価なものは120度おきなので、同じ長さでも等価でないものが混じっている。
+ここでは-1/2 0 1/2をedge vectorとして採用する。1/2 0 -1/2は結果が変わるので注意！
+2) terrace vector, vicinal vectorを決める。
+  tsubo.pl --terrace_vicinal_vector 1 1 1 -1/2 0 1/2 < POSCAR
+面指数を決めた時点でstep heightが確定する。
+いくつかある候補のうち、ここではterrace vectorとして-1/2(-0.5) 3/2(1.5) -1、vicinal vectorとして-1/2(-0.5) 2 -1/2(-0.5)を採用する。 sigma+tau=90_shaei_terrace_nagasaよりterrace vectorのshaei_nagasaが小さいことをまず確認する。このvicinal vectorのσが15.8度(vicinal planeとterrace planeのなす角、mismatch angleと表記されることもある)、vicinal planeの面指数が2 1 2であることがこの時点で判明する。狙ったvicinal planeの面指数からvicinal vectorを求め、それに対応したterrace vectorを決めることも可能である。ほしいvicinal planeの面指数がない場合、違うedge vectorを使うと出てくることがある。
+3) スラブモデルを作る。
+  tsubo.pl --slab_step -1/2 0 1/2 -1/2 3/2 -1 -1/2 2 -1/2 15 10 < POSCAR
+stoichiometryのモデルは最後が.vasp、off-stoichiometryのモデルは最後が.offstoicになっている。使えそうなものがあれば、それを使う。必要ならさらに原子を削る。
+
+
+
+C2) 原子名を変更する機能
+
+tsubo.pl --names A B C ... <POSCAR
+tsubo.pl --species A B C ... <POSCAR
+POSCARの各原子（９行目以降）の元素名をA,B,C..のように変える。
+６行目の元素名は変更*しない*。
+
+
+tsubo.pl --addnumber <POSCAR
+tsubo.pl --add_number <POSCAR
+POSCARの各原子（９行目以降）を元素名+通し番号にする（例：Na1, Co2, O3, O4）。あわせて、元素名（６行目）のアンダースコアおよびそれ以降（もしあれば）を削除。VESTAとのコンボに便利。
+
+
+tsubo.pl --names6 A B C ... <POSCAR
+tsubo.pl --species6 A B C ... <POSCAR
+６行目の元素名をA,B,C..のように変える。
+POSCARの各原子（９行目以降）の元素名は変更*しない*。
+
+
+tsubo.pl --noelement <POSCAR
+tsubo.pl --no_element <POSCAR
+POSCARの各原子（９行目以降）の元素名を表示しなくなる（空白にする）。あわせて、元素名（６行目）のアンダースコアおよびそれ以降（もしあれば）を削除。USPEXとのコンボに便利。
+
+
+tsubo.pl --substitute_atom number species <POSCAR
+POSCARのnumber番目の原子をPOSCARの最後に持ってきて、新たな元素speciesを割り当てる。平たく言えば原子削除＋同一サイトに原子追加。
+
+
+
+C3) 原子座標のみ変更する機能
+
+tsubo.pl --incell <POSCAR
+tsubo.pl --in_cell <POSCAR
+POSCARの原子座標をDirectで全て0≦x,y,z＜1の範囲に収める。
+
+
+◎
+tsubo.pl --frac <POSCAR
+tsubo.pl -f <POSCAR
+tsubo.pl -d <POSCAR
+tsubo.pl --fract <POSCAR
+tsubo.pl --fractional <POSCAR
+tsubo.pl --direct <POSCAR
+POSCARをDirect coordinatesにする。
+
+
+◎
+tsubo.pl --c <POSCAR
+tsubo.pl --cart <POSCAR
+POSCARをCartesian coordinatesにする。
+
+
+tsubo.pl --selective_true <POSCAR
+tsubo.pl --s_true <POSCAR
+tsubo.pl --selective_t <POSCAR
+tsubo.pl --s_t <POSCAR
+tsubo.pl --selective_T <POSCAR
+tsubo.pl --s_T <POSCAR
+POSCARをselective dynamicsにして、原子を全て動かせるようにする(T T Tにする）。selective dynamicsのPOSCARが例外的に生成される。
+
+
+tsubo.pl --selective_false <POSCAR
+tsubo.pl --s_false <POSCAR
+tsubo.pl --selective_f <POSCAR
+tsubo.pl --s_f <POSCAR
+tsubo.pl --selective_F <POSCAR
+tsubo.pl --s_F <POSCAR
+POSCARをselective dynamicsにして、原子を全て動かないようにする(F F Fにする）。selective dynamicsのPOSCARが例外的に生成される。
+
+
+
+tsubo.pl --shift A B C <POSCAR
+全ての原子座標を変位 A B C だけシフトする。
+変位はPOSCARがDirectならDirect、CartesianならCartesianで与える。
+
+
+tsubo.pl --random [R] <POSCAR
+tsubo.pl --randomize [R] <POSCAR
+全原子の全座標を -R<0<Rだけランダムに変位する。Rのデフォルトは0.001。
+対称性を崩したいきに便利。
+
+
+<2680/4/14 機能拡張>
+tsubo.pl --swap_atom A B [C D E F..] <POSCAR
+tsubo.pl --swap_atoms A B [C D E F..] <POSCAR
+A番目と B番目の原子位置を交換する。（元素名は*交換しない*、位置のみ）
+引数が3以上ある場合、順番に２つずつ、原子位置を交換していく。
+例えば、--swap_atom 2 4　だと、原子2と4の位置を交換する。
+--swap_atom 2 4 3 1　だと、原子2と4の位置を交換し、次に3と1を交換する。
+--swap_atom 2 4 1 3 5 2だと、2と4を交換し、1と3を交換し、5と2を交換する。
+左側から2原子ずつ交換するので、5と交換される2は、本来4番目の原子である。
+
+
+tsubo.pl --swap_species A B <POSCAR
+A番目と B番目の元素位置を交換する。
+
+
+◎
+tsubo.pl --similar POSCAR1 <POSCAR2
+POSCAR2の座標を読み、各原子において、対応するするPOSCAR1の座標との違いが0.5以下(Direct)になるようにPOSCAR2の座標を変える。POSCAR1はDirectにする必要がある。(Cartesianへの変換は行わない) Elastic bandの計算に便利。
+
+
+◎
+tsubo.pl --nebimages POSCAR1 1 <POSCAR2
+tsubo.pl --neb_images POSCAR1 1 <POSCAR2
+NEB用POSCAR群を作成する。まずは00から(N+1)までのディレクトリを作成する。POSCAR1が00、POSCAR2が(N+1)ディレクトリに入る。たとえば、N=1なら、00、01、02のディレクトリが作成され、経路中にイメージが1ファイル作成される。(POSCAR2については、similarコマンドが自動的に適用される）。01からNディレクトリまでは、均等な間隔でイメージが作成される。カレントディレクトリに00からN+1までのディレクトリが作成されるので注意。
+
+
+tsubo.pl --symmetrize isometry [dist] POSCAR
+POSCARに対し、特定のisometry (対称操作、12変数)を有するよう原子位置を調整する。ちょっと対称性の落ちた座標の対称性を上げるのに便利。
+もともとの内部座標の集合Aに対し、isometryを作用させた内部座標の集合Bを用意する。
+isometryが正しいのであれば、Aの各原子の座標に対し、非常に近い座標がBの中にあるはずである。これらの原子位置の平均を、新たな座標として出力する。
+AとBの２つの座標間の距離がdist (デフォルトは0.3A)以内にない場合、与えられた対称操作はisometryでないとして、エラーを返す。
+
+元のPOSCARで位置がほぼ重なっている原子（おおよそ距離がdist程度以下）がある場合のチェック等は行わないので注意。
+
+
+C4) 原子座標と格子を両方変えるが、原子数は変えない機能
+
+tsubo.pl --niggli <POSCAR
+POSCARをNiggli reduced cellにする。
+変換アルゴリズムは Acta Cryst (1976) A 32, 297 Krivy and Gruber に従う。
+Niggli reduced cellは本来はprimitive cellであるべきだが、本スクリプトでは実際にprimitiveであるかどうかの判定は行わず、暗示的にprimitiveであるとして扱う。
+
+なお、primitiveな格子ベクトルを求める最も安直な方法は、k点を 2 1 1 にしてgamma only vaspを走らせることである。
+もちろん、phonopyが使用可能であれば後述の --sp コマンドを用いてstandard primtive セルを求めても良い。
+
+
+tsubo.pl --reciniggli <POSCAR
+tsubo.pl --reci_niggli <POSCAR
+POSCARの逆格子がNiggli reduced cellになるように格子を変える。
+
+
+tsubo.pl --maxortho <POSCAR
+tsubo.pl --max_ortho <POSCAR
+c軸がa軸、b軸に対してmaximally orthogonalになるように格子をとり直す。--slab_poscar等、スラブモデルの作成結果にあわせて使用すると便利。Comp. Mater. Sci. 113 (2016) 221の式は、a軸とb軸が直交していない場合は誤った結果になることがある。適切なアルゴリズムはHinuma et al. Phys. Rev. Mater. 2.124603 (2018) のAppendix参照。
+
+
+tsubo.pl --change_slab_vacuum_thickness thickness <POSCAR
+スラブモデルの真空層の厚さをthicknessに変える。z=0は真空層に入っているものと仮定する。(スラブがab面をまたがないと仮定する)。真空層の厚さはスラブの最表面原子間と定義する。基底ベクトルa,bは変化せず、cのみを変える。*c軸をab面に垂直な方向に動かす。*出力ではスラブ中心が必ずz=0.5になる。legacy optionなので、特に問題なければorthoに以降すべき。
+
+tsubo.pl --change_slab_vacuum_thickness_ortho thickness <POSCAR
+スラブモデルの真空層の厚さをthicknessに変える。z=0は真空層に入っているものと仮定する。(スラブがab面をまたがないと仮定する)。真空層の厚さはスラブの最表面原子間と定義する。基底ベクトルa,bは変化せず、cのみを変える。*c軸がab面に垂直になるように設定される。*出力ではスラブ中心が必ずz=0.5になる。
+
+
+C5) 原子数を減らす機能
+
+tsubo.pl --unique [torelance] <POSCAR
+POSCARの重複するサイトを減らす。重複のチェックは元素ごとに行う。どれだけ近いと同じ原子かを判定する、tolerance を設定することができる。デフォルトは1E-8。
+
+
+☆
+tsubo.pl --makeslab minz maxz shiftz tolerance <POSCAR
+tsubo.pl --make_slab minz maxz shiftz tolerance <POSCAR
+表面の計算向きのスラブを作る。
+(direct coordinatesで) minz-tolerance≦z座標≦maxz+tolerance の原子だけ残し、その上で、z座標を(direct coordinatesで) shiftzだけずらす。さらにz座標に合わせて原子をソートするため（当然、元素ごと）以後のデータ解析に便利。引数は省略可能で、デフォルトではminz=0、maxz=1-1E-6、shiftz=0、tolerance=0、writePOSCARはnull。writePOSCARが"no"のときだけPOSCARが出力されない。minz=0, maxz=1にすることで、各元素における原子をzの順にソートすることが出来る。
+
+
+tsubo.pl --rmatom A B...
+tsubo.pl --rm_atom A B...
+tsubo.pl --rmatoms A B...
+tsubo.pl --rm_atoms A B...
+引数番目の原子を削除する。
+--rm_atom 1 3 5 のような指定方法以外にも、 --rm_atom 4..7 といったように連続した数値も指定できる。もちろん、 --rm_atom 3 のような単一原子の削除や、--rm_atom 2 4..5 7 のように単一原子指定と連続原子指定を併用することもできる。
+
+
+tsubo.pl --rmspecies A B...
+tsubo.pl --rm_species A B...
+引数番目の元素を削除する。--rm_atomの元素版。
+--rm_species 1 3 5 のような指定方法以外にも、 --rm_species 4..7 といったように連続した数値も指定できる。もちろん、 --rm_species 3 のような単一元素の削除や、--rm_species 2 4..5 7 のように単一元素指定と連続元素指定を併用することもできる。
+
+
+tsubo.pl --daruma A B
+だるま落としのように原子を抜く。
+原子B (x2,y2,z2) を原子A (x1,y1,z1) の位置に並進移動する。Directでz>=z2の原子も同様に並進移動する。z2>z>=z1の原子は削除する。
+
+
+C6) 原子数を増やす機能
+
+◎
+tsubo.pl --supercell [file] <POSCAR
+tsubo.pl --supercell A B C <POSCAR
+tsubo.pl --supercell 1 w1 w2 w3 <POSCAR
+tsubo.pl --supercell P Q R S T U V W X <POSCAR
+tsubo.pl --supercell P Q R S T U V W X w1 w2 w3 <POSCAR
+tsubo.pl --transform [file] <POSCAR
+tsubo.pl --transform A B C <POSCAR
+tsubo.pl --transform 1 w1 w2 w3 <POSCAR
+tsubo.pl --transform P Q R S T U V W X <POSCAR
+tsubo.pl --transform P Q R S T U V W X w1 w2 w3 <POSCAR
+tsubo.pl --change_of_basis [file] <POSCAR
+tsubo.pl --change_of_basis A B C <POSCAR
+tsubo.pl --change_of_basis 1 w1 w2 w3 <POSCAR
+tsubo.pl --change_of_basis P Q R S T U V W X <POSCAR
+tsubo.pl --change_of_basis P Q R S T U V W X w1 w2 w3 <POSCAR
+tsubo.pl --cob [file] <POSCAR
+tsubo.pl --cob A B C <POSCAR
+tsubo.pl --cob 1 w1 w2 w3 <POSCAR
+tsubo.pl --cob P Q R S T U V W X <POSCAR
+tsubo.pl --cob P Q R S T U V W X w1 w2 w3 <POSCAR
+
+基底変換を行う。スーパーセルを作ることもできる。
+詳しい解説：基底ベクトルを3つの縦ベクトル(a,b,c)と表記する。基底変換の行列部分Wと縦ベクトル部分w=(w1,w2,w3) (実際は縦ベクトル)を元の結晶にかけると新しい基底ベクトルは、(a',b',c')=(a,b,c)Mとなり、全てのfractional coordinate triplet(内部座標、縦ベクトル)にwを加えたものとなる。
+ただし、VASPは基底ベクトルを横ベクトルとして扱うため、転置をすることにより、
+(a',b',c')t=Mt(a,b,c)tとして扱われる。基底変換操作
+tsubo.pl --supercell  P Q R S T U V W X w1 w2 w3 
+は4x4行列表記としてはM=
+P S V w1
+Q T W w2
+R U X w3
+0 0 0 1
+に対応する。(説明初頭の対称操作の話と同じ表記)
+
+POSCARの場合。3~5行目が
+
+(F G H)
+(I J K)
+(L M N)
+
+とすると、新しい基底ベクトルが
+
+(P Q R)   (F G H)
+(S T U) * (I J K)
+(V W X)   (L M N)
+
+となるスーパーセルが得られる。
+また、全てのfractional coordinatesに(w1 w2 w3)が加算される。
+省略形もしくは代替入力として：
+引数が1つ:引数のファイル名を参照する。
+引数が3つ:行列部分の対角成分とみなす（他の値は全て0）
+引数が4つ:行列部分を単位行列、残りの3引数を変換の(縦)ベクトル部分としてみなす。第一引数は実際は読まれないが、1、E、Iのいずれかの使用を推奨する。
+引数が9つ:行列部分とみなす（ベクトル部分は全て0）
+引数が12:全ての成分を与えることになる。
+
+
+tsubo.pl --addatom x y z (name_element) (name_atom) <POSCAR
+tsubo.pl --add_atom x y z (name_element) (name_atom) <POSCAR
+POSCARの最後に原子座標が(x,y,z)の原子を追加する。
+原子座標はPOSCARがDirectならDirect、CartesianならCartesianで与える。第4引数に元素名をつけることができる。（任意）デフォルトだとXになる。また、第4引数を与えた場合、第5引数に原子名をつける必要がある。
+なお、6,7行目では、第4元素が既に存在するか否かにかかわらず、新しい元素として扱われる。同じ元素をまとめたければadd_atom_existを使う。
+
+例：POSCARの6,7行目が
+
+Na Cl
+4 4 
+
+の場合、
+tsubo.pl --addatom 0.1 0.2 0.3 Na Na1 <POSCAR
+を実行すると、6,7行目は
+
+Na Cl Na
+4 4 1
+
+のようになり、最終行が
+0.10000000000000   0.20000000000000   0.30000000000000  Na1
+となる。
+
+
+tsubo.pl --addatomexist x y z N name <POSCAR
+tsubo.pl --add_atom_exist x y z N name <POSCAR
+POSCARのN番目の元素の最後に原子座標が(x,y,z)の原子を追加する。
+原子座標はPOSCARがDirectならDirect、CartesianならCartesianで与える
+
+例：POSCARの6,7行目が
+
+Na Cl
+4 4 
+
+で
+
+tsubo.pl --addatomexist 0.1 0.2 0.3 1 Na1 <POSCAR
+
+の場合、6,7行目は
+
+Na Cl
+5 4 
+
+のようになり、１３行目（Na原子の座標4つの後ろ）が
+  0.10000000000000   0.20000000000000   0.30000000000000  Na1
+となる。
+
+
+tsubo.pl --superimpose POSCAR1 POSCAR2 ... <POSCAR
+tsubo.pl --superimpose_poscar POSCAR1 POSCAR2 ... <POSCAR
+POSCARファイルにPOSCAR1, POSCAR2...ファイルの原子を重ねる。
+POSCARファイルの格子定数を使用する。各POSCARで元素数と原子数を揃える必要がある。NEBの分析に便利。
+
+
+☆
+tsubo.pl --recoverslab isometry [tolerance] <POSCAR
+tsubo.pl --recover_slab isometry [tolerance] <POSCAR
+原子を（約）半分にしたモデルに対し、isometry (12変数)に対応する原子を戻すコマンド。
+無極性スラブモデルを作る→スラブの下半分を削り、スラブの底を位置固定して緩和など→スラブを復元して無極性スラブモデルを得る、のコンボを想定している。
+isometryについては、tsubo.pl --isometry_nonpolar_square <POSCAR 等で得た、厳密な値（vector partが丸められていないもの）を必ず使用すること。
+
+どれだけ近いと同じ原子かを判定する、tolerance を設定することができる。デフォルトは1E-8。
+
+流れのイメージとしては：
+1) tsubo.pl --isometry_nonpolar_square <POSCAR　でスラブモデルのisometryを得る。
+例えば、このような値が返ってくる。
+-1 0 0 0 -1 0 0 0 -1 0.0980392156862635 1.76470588235292 0.647058823529399 translation of square: 0 0 0
+2) スラブの下半分を削る。z方向の下端は0.647058823529399を2で割った値
+(0.3235294117646995)、これを必ず含むこと（z≧0.3235294117646995-δの原子を採用、δは1E-6などの十分小さい値。）zの上限は適当に決めていいが、下限+0.5が確実か。
+例えば tsubo.pl --makeslab 0.3235 0.7235 <POSCAR で半分削ったモデルがでてくる。off-stoichiometryになる場合があるが、適宜検討する。Nonpolar type Aなら必ずstoichiometryになる。
+3)必要な処理を行う。
+4)削った原子を復元する。この場合は
+tsubo.pl --recover_slab -1 0 0 0 -1 0 0 0 -1 0.0980392156862635 1.76470588235292 0.647058823529399 1E-5 <POSCAR
+原子の値が少し大きめのtoleranceを使う。isometryの数字は厳密な値を用いないとnonpolarにならないので注意!!　--recover_slabのtoleranceの設定については--uspex_slab参照。
+
+
+☆
+tsubo.pl --uspex_slab h k l thickness [asis] <POSCAR
+tsubo.pl --uspexslab h k l thickness  [asis] <POSCAR
+USPEXを用いてスラブ表面の再構成を調べるためのPOSCARを作る。
+asis と書かない場合、hklはconventional cellを元にとる。
+USPEXでは以下のようなPOSCARを入力として求めるが
+http://han.ess.sunysb.edu/uspex_manual/surfaces.html
+POSCARの3-5行目が
+* * 0
+* * 0
+0 0 c
+の形であると安定して走る。
+また、真空層は実際にはつけてはいけない。理想的には、directでzが最も大きい
+値(1より小さい）が1に近いことが望ましい。また、USPEXでこのPOSCARを読むときに、c軸方向の周期性は失われる。このため、zが1より小さいが近い原子と、zが1以上の原子の原子間距離はどうでもよくなっている。
+また、USPEXではfixed atoms の厚さ(Fと置く)とbuffer atomsの厚さ(Bと置く)の値を要求しており、z=0がfixed atomsの端で、c-F-Bの厚みがsurface regionの厚みとなっている。
+
+無極性スラブの再構成を行うには、(1)無極性を担保するisometryを確保し、(2)isometryが特定の値になるように原子位置を移し、(3)原子を（おおよそ）半分取り除き、(4) USPEXで再構成し、(5)確保したisometryをもとに無極性スラブを再構成する 手順を取ることができる。isometryとして、原点におけるinversionと、ab面におけるmirrorのみを検討する。POSCARの3-5行目が上述の形式であれば、原点のinversionやab面のmirrorが保存されるので、これらのisometryのみを考える。
+
+ここでは、h k lの面指数とスラブ厚さ thickness (少なくてもF+Bを超える値）を与えることで、USPEX用のPOSCARを生成する。
+
+inversionがisometryの場合、
+POSCAR.INV.A.1.primitive
+POSCAR.INV.A.2.primitive
+もしくは
+POSCAR.INV.B.1.primitive
+POSCAR.INV.B.2.primitive
+のファイルが生成される。これらは原点に反転対称点が来るように設計されているprimitive cellである。ab面がmirror planeである場合、INVの代わりにMIRのファイルが生成される。両方ある場合、inversionが優先される。AとBはnonpolar AとBの識別で、nonpolar Bの場合、z=0に原子がのることが許されない。適切なファイルが生成できない場合、ファイルは当然、生成されない。
+これらをもとに、
+POSCAR.INV.A.1.supercell
+等(厚さがthicknessを超えるようにした1x1xNのスーパーセル)、
+POSCAR.INV.A.1.supercell_rotated
+等(上と同じ構造だが、POSCARの3-5行目が
+* 0 0
+* * 0
+* * *
+の形になっている)とUSPEX用ファイル（これらはスーパーセルではない！）として
+POSCAR.INV.A.1.USPEX
+等のファイルが作成される。
+.USPEXファイルはあくまでもUSPEXの入力専用であり、普通に計算するととんでもないことになる。
+
+
+USPEX計算後に無極性スラブモデルを再構成する場合、inversionの場合は
+
+tsubo.pl --supercell 1 1 2 <POSCAR.USPEX>POSCAR.temp
+tsubo.pl --make_slab 0.49 0.99 <POSCAR.temp>POSCAR.temp2
+tsubo.pl --recover_slab -1 0 0 0 -1 0 0 0 -1 0 0 1 1E-5 <POSCAR.temp2>POSCAR.temp3
+
+mirrorの場合は
+
+tsubo.pl --supercell 1 1 2 <POSCAR.USPEX>POSCAR.temp
+tsubo.pl --make_slab 0.49 0.99 <POSCAR.temp>POSCAR.temp2
+tsubo.pl --recover_slab 1 0 0 0 1 0 0 0 -1 0 0 1  1E-5 <POSCAR.temp2>POSCAR.temp3
+
+を実行する。1E-5はtoleranceであり、原子の重複がある場合は大きくして(1E-2とか)重複を潰す。
+USPEXの格子定数は桁落ちしているので、ここで本来の桁を取り戻すことを考える。
+セルの格子定数は 
+tsubo.pl --data <POSCAR.temp3
+で得ることができる。
+もし、同じ格子定数のPOSCAR (POSCAR_same)が別途あれば、
+tsubo.pl --data <POSCAR_same
+で格子定数を入手し、その格子定数をもとに
+tsubo.pl --clat a b c al be ga 
+で基底ベクトルを得る。出力が3行あるが、POSCAR.temp3の3-4行を出力の上2行で置き換える。
+多くの場合原子が多いので、原子を抜く。気をつけて削ると対称性を維持したままスラブを薄くすることができる。
+このままだとやりにくいので、
+tsubo.pl --makeslab <POSCAR.temp3 | tsubo.pl -c >POSCAR.temp4
+で原子を整列させ、cartesianにする。
+ExcelでもVESTAでもいいので抜く原子の範囲を決めたら、
+tsubo.pl --daruma A B <POSCAR.temp4>POSCAR.temp5
+を使って、だるま落とし的に原子位置固定層の部分を削る。
+tsubo.pl --isometry < POSCAR.temp5　もしくは
+phonopy --symmetry --tolerance=1E-3 --cell=POSCAR.temp5 | less
+で対称性が残っていることを確認する。(1E-2にする必要があるかもしれない)
+残っていない場合は、座標の桁落ちがひどい場合が考えられるので、とりあえず次に進む。。
+また、得られた真空層は厚すぎるので、真空層の厚さをいじりたい場合、
+tsubo.pl --change_slab_vacuum_thickness 15 <POSCAR.temp5 |tsubo.pl -d > POSCAR.temp6
+のように真空層の厚さ(この例では15)を変更する。
+対称性をしっかり上げるため、最後に
+tsubo.pl --symmetrize  -1 0 0 0 -1 0 0 0 -1 0 0 1  1E-3 < POSCAR.temp6 >temp.final を実行する。（反転の場合、鏡面の場合は1 0 0 0 1 0 0 0 -1 0 0 1 ）
+1E-3はtoleranceなので、エラーが出るなどの狙った結果が出ない場合は適宜変える。
+このあと、tsubo.pl --isometry < POSCAR.final を実行する。対称性がちゃんと出ていればOK。
+
+
+▲
+tsubo.pl --addimages minx maxx miny maxy minz maxz <POSCAR
+POSCARを拡大/縮小し、原子位置がDirectで(minx以上maxx以下),(miny以上maxy以下),(minz以上maxz以下)の原子のみを表示する。各minを0以下、maxを1以上にすると、unit cell外の原子も表示される。xyz形式で結晶構造を出力する際に便利。
+
+例: --addimages 0 1 0 1 0 1 <POSCAR とすると、原点 (0 0 0) の原子が計8つ出力される（unit cellのすべての頂点）。このようなPOSCARをvaspで走らせると、原子間距離が0の原子が8つ存在するため、とんでもない結果になる。
+
+
+
+
+
+D) 外部インターフェース関連
+
+tsubo.pl --cif <POSCAR
+POSCARの内容をcifファイル(空間群P1)にする。cifファイルの内容は標準出力。
+
+
+◎
+tsubo.pl --cif6 <POSCAR
+POSCARの内容をcifファイル(空間群P1)にする。
+元素名はPOSCARの6行目のデータを使用する。VESTAとのコンボが強力。
+
+
+tsubo.pl --xyz <POSCAR
+POSCARの内容をxyzファイルにする。元素名として、各原子の座標以降の文字列を使用する。（フォーマットはチェックしない）。 --cif に比べて格子定数の情報が欠落するものの、 --addatom と組み合わせて使うことでVESTA等で表示したい原子を逐一指定できる利点がある。
+
+
+tsubo.pl --xyz6 <POSCAR
+POSCARの内容をxyzファイルにする。元素名はPOSCARの6行目のデータを使用する。
+
+
+
+E) Conventional/primitive・バンド図関連
+
+特記事項：
+
+このセクションのコマンドは全てPhonopyを使用する。
+また、原則として元のPOSCARのCartesian上での原子位置は継承されない。
+
+Standard セルの使用は、現在非推奨。
+Standard conventional/primitiveの定義は
+Computational Materials Science 49 (2010) 299 Setyawan and Curtarolo を参照。
+また、この論文でORCF3、MCLC2、MCLC4、TRI2a、TRI2bの定義に使用されている「=」は
+厳密に成立することはまずないので、実際は「≒」である。
+
+
+◎
+tsubo.pl --conventional <POSCAR
+tsubo.pl --bposcar <POSCAR
+tsubo.pl --crystallographic_conventional <POSCAR
+tsubo.pl --cc <POSCAR
+結晶学的 conventional unit cellを生成する。基本的にphonopyで生成されるBPOSCARをVasp 5形式になおしたものだが、軸がまわっていることがある。(注：最近のBPOSCARはVASP 5形式。)
+
+
+◎
+tsubo.pl --crystallographic_primitive <POSCAR
+tsubo.pl --cp <POSCAR
+結晶学的 primitiveファイルを生成する。
+
+
+☆
+tsubo.pl --hinuma_reduced <POSCAR 
+Yoyo Hinuma, Yu Kumagai, Fumiyasu Oba, Isao Tanaka. Band structure diagram paths based on crystallography. Computational Materials Science 128 (217) 140-184 にある、三斜晶(triclinic) の"reduced" cellを出力する。入力POSCARがprimitiveであると仮定する。"reduced"セルはprimitiveであり、逆格子について以下が成り立つ：逆格子の格子定数の集合は逆格子のNiggli reduced cellと同じ集合であり、逆格子の格子定数の角度(interaxial angles)は全て90度より大きい(obtuse)か小さく(acute)、なおかつ|a*b*cosγ|が|b*c*cosα|と|c*a*cosβ|の両方より小さい(0に近い)。なお、このa,b,c,α,β,γは逆格子空間での格子定数である。三斜晶のバンド図を書くときにはこのreduced cellをもとに計算する。というのは、三斜晶ではreduced cellがuniqueに取れ、acuteな場合は、必ずc軸がブリルアンゾーンの平行四辺形の面を突き抜ける特徴がある。三斜晶以外だと"reduced" cellがuniqueにとれないため、そもそも議論する意味が無い。
+
+
+▲
+tsubo.pl --standard_conventional <POSCAR 
+tsubo.pl --sc <POSCAR 
+Standard conventionalファイルを生成する。
+
+
+▲
+tsubo.pl --standard_primitive <POSCAR 
+tsubo.pl --sp <POSCAR 
+Standard primitiveファイルを生成する。
+
+
+☆
+tsubo.pl --bzpoint [filename] <POSCAR
+ブリルアンゾーン内のラベル付き点をKPOINTS形式でfilenameに出力する。ラベルの定義は結晶学 (Hinuma et al.) 準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は KPOINTS.Cbzpoint 。出力の形式は
+
+ 0.0000000  0.0000000  0.0000000 0 ! Gamma 
+ 0.5000000 -0.5000000  0.0000000 0 ! L 
+
+結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+☆
+tsubo.pl --bzpoint_notrs [filename] <POSCAR
+ブリルアンゾーン内のラベル付き点をKPOINTS形式でfilenameに出力する。ラベルの定義は結晶学 (Hinuma et al.) 準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*しない*。デフォルトファイル名は KPOINTS.Cbzpoint_notrs 。Time-reversal symmetryを外すことでラベルをつける必要がある点は、Γ点に対して反転対称の点のラベルにプライム（'）をつけたものである。出力の形式は--bzpoint同様。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲
+tsubo.pl --scbzpoint [filename] <POSCAR
+ブリルアンゾーン内のラベル付き点をKPOINTS形式でfilenameに出力する。ラベルの定義はSetyawan and Curtarolo準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は KPOINTS.SCbzpoint 。出力の形式は--bzpoint同様。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+
+▲
+tsubo.pl --bzpointkpf [filename] <POSCAR
+ブリルアンゾーン内のラベル付き点を.kpf形式風にfilenameに出力する。ラベルの定義は結晶学 (Hinuma et al.) 準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は Cbzpoint.kpf 。出力の形式は
+
+Real form of k-point coordinates (kx,ky,kz,label):
+  0.0000000  0.0000000  0.0000000 K.1 Gamma 
+  0.5000000  0.5000000  0.0000000 K.2 A 
+
+最初の1行も必ず表示される。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲☆
+tsubo.pl --bzpointkpf_notrs [filename] <POSCAR
+ブリルアンゾーン内のラベル付き点を.kpf形式風にfilenameに出力する。ラベルの定義は結晶学 (Hinuma et al.) 準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*しない*。デフォルトファイル名は Cbzpoint_notrs.kpf 。Time-reversal symmetryを外すことでラベルをつける必要がある点は、Γ点に対して反転対称の点のラベルにプライム（'）をつけたものである。出力の形式は--bzpointkpf同様。最初の1行も必ず表示される。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲
+tsubo.pl --scbzpointkpf [filename] <POSCAR
+ブリルアンゾーン内のラベル付き点を.kpf形式風にfilenameに出力する。ラベルの定義は結晶学準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は SCbzpoint.kpf 。出力の形式は--bzpointkpf同様。最初の1行も必ず表示される。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+
+◎☆
+tsubo.pl --kpath [interval] [filename] <POSCAR
+Hinuma et al.で推奨されるバンドパスをKPOINTS形式でfilenameに出力する。ラベルの定義は結晶学 (Hinuma et al.) 準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。[interval]はk点間の間隔で、A-1 単位で指定する。デフォルトintervalはバンド図に最適な0.025。intervalを明示的に入力しないとfilenameを指定できない。（--kpath filename といった使用法は不可）デフォルトファイル名は KPOINTS.Ckpath_[interval] 。[interval]が指定されない場合、KPOINTS.Ckpath_0.025となる。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+出力の形式は
+  0.0000000  0.0000000  0.5000000 0 ! K.9 M |
+  0.0000000 -0.5000000  0.5000000 0 ! K.10 R -
+  0.0000000 -0.4687500  0.4687500 0
+
+高対称点は上からK.1 K.2 といった形で番号がふられる。ラベル付き点の最後の - は次の高対称点までの点を出力していること、| はパスを打ち切って次のラベル付き点までワープすることを示す。最後のラベル付き点では X が出力される。
+
+注：生成されるファイルは完全なKPOINTS形式では*ない*。KPOINTSファイルの最初の3行は出力されない。またK点の重みは全て0になる。VASPは重みが0のKPOINTSファイルを計算することができないので、特にGGAで計算する場合は注意（重みをどれか1にすること）。
+HSEでバンド図を計算する場合、生成されるKPOINTSをIBZKPTの下にくっつけて、２行目のK点数を書き換え、KPOINTSに名前を変えて走らせることを推奨。
+
+
+☆
+tsubo.pl --kpath_notrs [interval] [filename] <POSCAR
+Hinuma et al.で推奨されるバンドパスをKPOINTS形式でfilenameに出力する。ラベルの定義は結晶学 (Hinuma et al.) 準拠。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*しない*。[interval]はk点間の間隔で、A-1 単位で指定する。デフォルトintervalはバンド図に最適な0.025。intervalを明示的に入力しないとfilenameを指定できない。（--kpath_notrs filename といった使用法は不可）デフォルトファイル名は KPOINTS.Ckpath_notrs_[interval] 。[interval]が指定されない場合、KPOINTS.Ckpath_notrs_0.025となる。 
+Time-reversal symmetryを外すことでラベルをつける必要がある点は、Γ点に対して反転対称の点のラベルにプライム（'）をつけたものである。出力の形式は--kpath同様。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲☆
+tsubo.pl --sckpath [interval] [filename] <POSCAR
+Setyawan and Curtaroloで推奨されるバンドパスをKPOINTS形式でfilenameに出力する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。[interval]はk点間の間隔で、A-1 単位で指定する。デフォルトintervalはバンド図に最適な0.025。intervalを明示的に入力しないとfilenameを指定できない。（--sckpath filename といった使用法は不可）デフォルトファイル名は KPOINTS.SCkpath_[interval] 。[interval]が指定されない場合、KPOINTS.SCkpath_0.025となる。出力の形式は--kpath同様。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+また、注意事項として、http://en.wikipedia.org/wiki/Brillouin_zone に掲載されているMCL?のバンドパスは、図中DOIに記載されているComp Mater Sciの論文と異なっている。論文のバンドパスのほうが短いため、（たとえばMCLはΓ点からのパスがひと通り）、Wikipediaのパスを採用している。
+
+
+▲☆
+tsubo.pl --kpathkpf [filename] <POSCAR
+Hinuma et al.で推奨されるバンドパスのK点を順にkpf形式風に表示する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は defaultCkpath.kpf。出力の形式は
+
+Real form of k-point coordinates (kx,ky,kz,label):
+  0.0000000  0.0000000  0.0000000 K.1 Gamma -
+  0.0000000  0.5000000  0.0000000 K.2 Y -
+
+結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲☆
+tsubo.pl --kpathkpf_notrs [filename] <POSCAR
+Hinuma et al.で推奨されるバンドパスのK点を順にkpf形式風に表示する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*しない*。デフォルトファイル名は defaultCkpath_notrs.kpf。Time-reversal symmetryを外すことでラベルをつける必要がある点は、Γ点に対して反転対称の点のラベルにプライム（'）をつけたものである。出力の形式は--kpathkpf同様。(Triclinicの場合はHinuma-reduced)
+
+
+▲
+tsubo.pl --sckpathkpf [filename] <POSCAR
+Setyawan and Curtaroloで推奨されるバンドパスのK点を順にkpf形式風に表示する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は defaultSCkpath.kpf。出力の形式は--kpathkpf同様。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+
+◎☆
+tsubo.pl --kpathphonopy [filename] <POSCAR
+Hinuma et al.で推奨されるバンドパスのK点を順にphonopy風に表示する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は defaultCkpath.phonopy。出力の形式は
+
+BAND=  0.0000000  0.0000000  0.0000000  0.5000000  0.0000000  0.5000000 ,  0.0000000  0.5000000  0.5000000  0.5000000  0.5000000  0.5000000 
+BAND_LABELS= \Gamma Y S R
+
+結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲☆
+tsubo.pl --sckpathphonopy [filename] <POSCAR
+Setyawan and Curtaroloで推奨されるバンドパスのK点を順にphonopy風に表示する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。デフォルトファイル名は defaultSCkpath.phonopy。出力の形式は--kpathphonopy同様。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+
+◎☆
+tsubo.pl --kpath_band [filename] <POSCAR
+Hinuma et al.で推奨されるバンド図計算用のバンドパスを生成する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。これは tsubo.pl --kpath 0.025 [filename] <POSCAR と同じ。使い方は--kpathを参照。デフォルトファイル名は KPOINTS.Ckpath_band 。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+☆
+tsubo.pl --kpath_band_notrs [filename] <POSCAR
+Hinuma et al.で推奨されるンド図計算用のバンドパスを生成する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*しない*。これは tsubo.pl --kpath 0.025 [filename] <POSCAR と同じ。使い方は--kpath_notrsを参照。デフォルトファイル名は KPOINTS.Ckpath_band_notrs 。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲☆
+tsubo.pl --sckpath_band [filename] <POSCAR
+Setyawan and Curtaroloで推奨されるバンド図計算用のバンドパスを生成する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。これは tsubo.pl --kpath_notrs 0.025 [filename] <POSCAR と同じ。使い方は--sckpathを参照。デフォルトファイル名は KPOINTS.CSkpath_band 。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+
+◎☆
+tsubo.pl --kpath_mass [filename] <POSCAR
+Hinuma et al.で推奨される有効質量計算用のバンドパスを生成する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。まず tsubo.pl --kpath_mass 0.002 [filename] <POSCAR を計算し、各ラベル付き点およびの隣8点のみを出力する。必要な部分のみ抜き出して、KPOINTSに加えてVASPを回すことで、それを元に有効質量を計算できる。デフォルトファイル名は KPOINTS.Ckpath_mass 。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+なお、現時点での有効質量導出のベストプラクティスは以下のとおり。
+バンドが E(k) = a*k^2 + c と近似できる時、有効質量は
+m*/me = (6.626)^2 * 100 / 9.109 / 1.602 / 2a で求められる。
+なお、kは高対称点からの距離で単位がA-1。近似の際、k = 0, k0, 2k0 の3点を用いてフィットするが、k0 = 0.004、0.006、0.008の3通りの近似を行い、結果がほぼ同一であることを確認し、k0 = 0.006 の値を採用する。cの値としてはE(0)の計算値（高対称点の計算値）をそのまま使用し、フィットは行わない。
+
+tsubo_temp1 を上書き作成、削除する。
+
+
+☆
+tsubo.pl --kpath_mass_notrs [filename] <POSCAR
+Hinuma et al.で推奨される有効質量計算用のバンドパスを生成する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*しない*。それ以外--kpath_massと同様。デフォルトファイル名は KPOINTS.Ckpath_mass_notrs。結晶学的primitiveセルが標準出力に表示されるので計算にはこれを使用すること。(Triclinicの場合はHinuma-reduced)
+
+
+▲☆
+tsubo.pl --sckpath_mass [filename] <POSCAR
+Setyawan and Curtaroloで推奨される有効質量計算用のバンドパスを生成する。Time-reversal symmetry (バンド構造がΓ点に対して反転対称）を仮定*する*。それ以外--kpath_massと同様。デフォルトファイル名は KPOINTS.SCkpath_mass。Standard primitiveセルが標準出力に表示されるので計算にはこれを使用すること。
+
+
+
+
+使用に関する注意書き 
+・改変自由
+・無保証
+・利用による全責任の完全な免責および免除
+・サポートはオリジナル版についてのみ、日本語でのみ対応
+
+
+
+***以下、開発者向け資料
+
+Global変数は@arg(=@ARGV)および sub readPOSCAR で取得する$topline $scale @latvec @namespecies @numspecies $dc @x @y @z @w （以上、sub writePOSCARで使用)と$num_atoms (旧$numatoms、サブルーチン$num_atoms=&numatomsで求める）
+
+Phoopyの--tolerance は 1E-4でスタート、phonopyが落ちるごとに半分ずつにする。
+
+サブルーチンは以下の順に置く。
+
+0) 各引数に関する処理 (if分岐)
+1) Help,Version
+2) Read/write
+3) 汎用性が高い短サブルーチン～汎用性が低い長サブルーチン
+4) Phonopyまわり
+5) 表面関連
+6) バンドパス関連
+7) 基本的な文字列処理
+8) 基本的な配列処理
+9) 数学関数
+10) Lookup-table的なもの
+
+
+サブルーチンリスト
+0)
+sub kpointscheck{
+sub printkpoints{
+sub gcm_direction{
+sub swap_species_coordinates{
+sub similar{
+sub remove_atoms{
+1)
+sub help{
+sub version{
+2)
+sub readPOSCAR{
+sub clat{
+sub writeCIF{
+sub writexyz{
+sub writePOSCAR{
+sub writePOSCAR_selective{
+sub printx{
+sub args_from_file{
+3)
+sub c2d{
+sub d2c{
+sub numatoms{
+sub nameatom{
+sub reci_latvec{
+sub get_abc{
+sub unique{
+sub unique_species{
+sub populate_block{
+sub data{
+sub remove_zero_atom_species{
+sub distance{
+sub distance_sphere{
+sub rotate_axis{
+sub get_additional_coordinates{
+sub get_supercell{
+sub get_niggli_latvec{
+sub maxortho{
+sub maxortho_c{
+sub which_atom_number{
+sub symmetrize{
+sub near_atom{
+4)
+sub get_bposcar{
+sub run_phonopy{
+sub clear_phonopy{
+sub twoDspacegroup{
+sub get_crystallographic_cell{
+sub get_crystallographic_cell_get_latvec{
+sub get_hinuma_reduced{
+sub get_isometry{
+sub isometry_real{
+sub get_isometry_translation{
+sub get_surface_isometry{
+sub get_isometry_type{
+sub isometry_image{
+sub make_empty_cell{
+5)
+sub make_slab{
+sub get_hkl_cell{
+sub hkl_transformation_matrix{
+sub nonpolar_area_sort{
+sub get_surface_slab_info{
+sub make_surface_slab{
+sub get_inplane_lattice_vector{
+sub get_terrace_vicinal_vector{
+sub make_edge_slab{
+sub remove_edge{
+sub get_primitive_for_surface_reconstruction{
+sub get_termination_polarity{
+sub get_termination_polarity_nonpolarAB{
+sub reconstruct_typeC_surface{
+sub nonpolarC_isometry_hp{
+sub nonpolarC_isometry_tp{
+sub nonpolarC_isometry_other{
+sub facet_orientation{
+6)
+sub get_kpath_kpf_print{
+sub get_kpath_kpoints{
+sub get_kpath_phonopy{
+sub get_kpath_mass{
+7)
+sub rmvcrlf{
+sub split3{
+sub split4{
+sub splitall{
+8)
+sub site_in_cell{
+sub site_is_same{
+sub get_transformation_matrix{
+sub order_key_cmp{
+sub order_key_number{
+sub expand_array{
+sub unique_array{
+sub same_array{
+sub max{
+sub min{
+sub within{
+sub part_sum_array{
+
+9)
+sub product_vs{
+sub sum_vv{
+sub diff_vv{
+sub product_vv{
+sub cross_vv{
+sub norm{
+sub unit_v{
+sub angle_vv{
+sub product_mm{
+sub product_mm_element{
+sub invmatrix3{
+sub tmatrix3{
+sub det2{
+sub det3{
+sub product_vm{
+sub product_mv{
+sub apply_symop{
+sub floor{
+sub floor_array{
+sub ceiling{
+sub round{
+sub round_array{
+sub sind{
+sub cosd{
+sub tand{
+sub acos{
+sub is_integer{
+sub oddeven{
+sub precise{
+sub clean_integer{
+sub gcmmany{
+sub gcmpair{
+sub minimum_array{
+sub frac2dec{
+sub frac2dec_array{
+sub frac2dec_gcm{
+sub projection_vector3D{
+sub projection_normal_vector3D{
+sub product_symop{
+sub max_gap{
+sub gaussian_reduction_2d{
+sub polar{
+sub to_fraction{
+sub leastsquares{
+sub spherical_triangle_area{
+
+10)
+sub is_unique_nonpolar{
+sub to_unique_nonpolar{
+sub bz_point{
+sub get_kpath_kpf{
+sub get_standard_SC{
+sub get_standard_SC_get_latvec{
+sub bz_point_SC{
+sub get_kpath_kpf_SC{
+
