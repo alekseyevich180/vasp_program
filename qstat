@@ -1,0 +1,9 @@
+#!/bin/tcsh
+
+#pjstat -A | grep -e l70104b -e l70104a 
+pjstat -A | grep -v  "*"
+
+set num=`pjstat -A | grep -c -e l70104b -e l70104a`
+
+echo total = $num
+

@@ -1,0 +1,10 @@
+#!/bin/csh
+
+set job = $1
+set MOL=`basename $job ".xyz"`
+
+ssh  tatara@trout.scc.kyushu-u.ac.jp "cd xyzgen; rm -f *.gen *.xyz " 
+scp  $1  tatara@trout.scc.kyushu-u.ac.jp:xyzgen 
+ssh  tatara@trout.scc.kyushu-u.ac.jp "cd xyzgen; rm -f *.gen  ;xyz2gen $1" 
+scp  tatara@trout.scc.kyushu-u.ac.jp:xyzgen/$MOL.gen  .
+

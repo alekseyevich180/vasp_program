@@ -1,0 +1,17 @@
+# Walsh output for job: Fe(CO)4C2H4; planar ethylene
+
+# This is the key to the columns printed out below.
+# 1  Walsh Variable 1
+# 2 Reduced Overlap Population between atoms 10 and 11
+# 3 Reduced Overlap Population between atoms 1 and 10
+4.000000 1.217613 0.000845 
+3.800000 1.216745 0.001815 
+3.600000 1.214972 0.003777 
+3.400000 1.211505 0.007582 
+3.200000 1.205083 0.014589 
+3.000000 1.193972 0.026676 
+2.800000 1.176358 0.045861 
+2.600000 1.151240 0.073265 
+2.400000 1.119430 0.107610 
+2.200000 1.083839 0.144064 
+2.000000 1.048939 0.173834 

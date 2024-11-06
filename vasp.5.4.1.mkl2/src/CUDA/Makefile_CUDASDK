@@ -1,0 +1,32 @@
+# Root paths
+
+include makefile.include
+
+SRCDIR := 
+
+# Add source files here
+USER_LIBDIR := lib
+STATIC_LIB	:= libCudaUtils.a 
+
+# Cuda source files (compiled with cudacc)
+CUFILES		:= potlok.cu \
+		   cuda_helpers.cu hamil.cu nonlr.cu davidson.cu \
+		   mpi.cu force.cu rmm-diis.cu cuda_blas.cu \
+		   cuda_mem.cu cuda_main.cu  \
+		   cuda_profiling.cu cuda_fft.cu cuda_debug.cu \
+                   fock.cu  \
+                   cufft_int.cu 
+
+CU_DEPS         := potlok.cu
+CFILES		:= fortran.c cuda_errors.c #magma.c
+FORTFILES	:=
+
+INCLUDES	:= -I${CUDA_ROOT}/include -I${MAGMA_ROOT}/include -I${MPI_INC}
+USER_LIB        := ${MAGMA_ROOT}/lib/libmagma.a -L${MAGMA_ROOT}/lib -lmagma -lmagmablas -L${MKLROOT}/lib/intel64 -lcutil -lnvToolsExt -L${CUDA_ROOT}/lib64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core-lcublas -lcudart
+COMMONFLAGS     := -DKERNEL_DP -DKERNEL_ZP -DDEBUG -DUSE_STREAM -DMPICH_IGNORE_CXX_SEEK -D__PARA \
+		   #-DUSE_CPUTIMERS -DUSE_NVTX #-DGPUDIRECT
+
+GENCODE_ARCH    ?= -gencode=arch=compute_30,code=\"sm_30,compute_30\" -gencode=arch=compute_35,code=\"sm_35,compute_35\"
+################################################################################
+# Rules and targets
+include common.mk

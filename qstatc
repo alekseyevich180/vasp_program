@@ -1,0 +1,25 @@
+#!/bin/tcsh
+
+#pjstat -A | grep -e l70104b -e l70104a 
+pjstat -A | grep -v  "*"  > $$.dat
+
+awk   ' NR>5 {print $0}'  $$.dat
+#set num=` grep -c -e l70104b -e l70104a $$.dat`
+
+grep  -e l70104a $$.dat  >  $$.data
+grep  -e l70104b $$.dat  >  $$.datb
+set tot=`grep -e RUN -e QUE  $$.dat | awk '{ p=p+$10   } END{print p }' `
+set tota=`grep -e RUN -e QUE  $$.data | awk '{ p=p+$10   } END{print p }' `
+set totb=`grep -e RUN -e QUE  $$.datb | awk '{ p=p+$10   } END{print p }' `
+set runa=`grep RUN $$.data | awk '{ p=p+$10   } END{print p }' `
+set runb=`grep RUN $$.datb | awk '{ p=p+$10   } END{print p }' `
+
+#set numa=`grep -c -e l70104a $$.dat`
+#set numb=`grep -c -e l70104b $$.dat`
+@ run = $runa + $runb
+echo  " RUN total   =" $run  "     l70104a =" $runa   "     l70104b =" $runb 
+echo  " R+Q total   =" $tot  "     l70104a =" $tota   "     l70104b =" $totb 
+
+rm -f $$.dat   $$.data   $$.datb  
+
+

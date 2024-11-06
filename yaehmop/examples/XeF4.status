@@ -1,0 +1,15 @@
+Doing a molecular calculation.
+Read: 5 atoms
+Completed parameter acquisition.
+Average Propeties will be calculated.
+There are 20 orbitals in the unit cell.
+There are 2 fragments.
+Fragment 1 has 1 atoms and 4 orbitals.
+Fragment 2 has 4 atoms and 16 orbitals.
+Allocating approximately    35.35 Kbytes (    0.03 Meg).
+Each matrix is:     0.00 meg.
+Error value from FMO diagonalization (fragment 0): 0
+Error value from FMO diagonalization (fragment 1): 0
+Error value from Diagonalization (0 is good): 0
+ Sorting 20 crystal orbitals.
+Done!

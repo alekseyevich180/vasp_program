@@ -1,0 +1,46 @@
+# Precompiler options
+CPP_OPTIONS= -DHOST=\"IFC91_ompi\" -DIFC \
+             -DCACHE_SIZE=4000 -DPGF90 -Davoidalloc \
+             -Duse_bse_te 
+
+CPP        = fpp -f_com=no -free -w0  $*$(FUFFIX) $*$(SUFFIX) $(CPP_OPTIONS)
+
+FC         = ifort
+FCL        = ifort -mkl=sequential
+
+FREE       = -free -names lowercase
+
+FFLAGS     = -assume byterecl
+OFLAG      = -O2
+OFLAG_IN   = $(OFLAG)
+DEBUG      = -FR -O0
+
+MKL_PATH   = $(MKLROOT)/lib/intel64
+BLAS       =
+LAPACK     = $(MKL_PATH)/libmkl_intel_lp64.a
+BLACS      =
+SCALAPACK  = $(BLACS)
+
+OBJECTS    = fft3dfurth.o fft3dlib.o
+
+INCS       =
+
+LLIBS      = $(SCALAPACK) $(LAPACK) $(BLAS)
+
+OBJECTS_O1 += fft3dfurth.o fftw3d.o fftmpi.o fftmpiw.o
+OBJECTS_O2 += fft3dlib.o
+
+# For what used to be vasp.5.lib
+CPP_LIB    = gcc -E -P -C $*$(FUFFIX) >$*$(SUFFIX)
+FC_LIB     = ifort
+CC_LIB     = icc
+CFLAGS_LIB = -O
+FFLAGS_LIB = -O1 -FI
+FREE_LIB   = -FR
+
+OBJECTS_LIB= linpack_double.o
+
+# Normally no need to change this
+SRCDIR     = ../../src
+BINDIR     = ../../bin
+
